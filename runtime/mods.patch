@@ -6078,7 +6078,7 @@ index 0000000..b90d8f5
 +           (unsigned long long)sh);
 +}
 diff --git a/runtime/mlb/rtts_autosave.c b/runtime/mlb/rtts_autosave.c
-index 74c6846..95ee403 100644
+index 32a2270..bb3b382 100644
 --- a/runtime/mlb/rtts_autosave.c
 +++ b/runtime/mlb/rtts_autosave.c
 @@ -3,6 +3,16 @@
@@ -6119,7 +6119,7 @@ index 74c6846..95ee403 100644
  //
  // How: a perk command, or an attribute command that changed the tokens, marks a save as wanted. The save runs at the
  // next screen change, after the screen's own function: normally when the player leaves the Perks, Tools or pitch
-@@ -24,6 +46,33 @@
+@@ -24,6 +46,22 @@
  // the menu stopped taking input after the third purchase in a row, cause not found; in that run every save was
  // followed by the menu re-entering its selection box.) The screen slot is shared with tutorials.c: whatever it holds
  // at boot (the game's function or tutorials.c's host function) is called.
@@ -6139,21 +6139,20 @@ index 74c6846..95ee403 100644
 +// 10 times, until a screen is entered: "SaveData" (the type list) follows within about 0.1 s of an A it takes. No
 +// more presses once the player presses A on the list. For a second after "SaveData" the player's own A is held back,
 +// so a habitual second A does not start another save from the type list.
-+//
-+// Bug Fixes, MLB_CREATION_NOSAVE=1: not while a new player is made. Making a player runs the same commands (the
-+// position's confirm, the first tokens spent on the TokenAllocation screen, the same screen as the hub's Tools), and
-+// the game's autosave then saved the half-made player as a career: before the name was typed, so the career kept the
-+// default name "Joe Random", and it then opened straight in the hub instead of the rest of creation (seen 2026-11-23,
-+// a player's report and test runs). Making a player also goes through the player editor ("BpCustomize" and
-+// "CreatePlayer"), so a change kept there would be saved the same way by MLB_SAVE_EDITS.
-+// Making a player starts at the BpCreation screen and ends when the Road to the Show home (RttSHomeMain) opens, and
-+// in between this module saves nothing, upgrades or player edits, so the game saves when it would without it.
-+// services.c hands every game log line to rtts_autosave_game_log, which follows those two screens. (The same fix
-+// without the switch is upstream pull request 29; the switch goes when the mod's base has it.)
+ //
+ // Not while a new player is made. Making a player runs the same commands (the position's confirm, the first tokens
+ // spent on the TokenAllocation screen, the same screen as the hub's Tools), and the game's autosave then saved the
+@@ -33,7 +71,8 @@
+ // save was not followed).
+ // Making a player starts at the BpCreation screen and ends when the Road to the Show home (RttSHomeMain) opens, and
+ // in between this module saves nothing, so the game saves when it would without it. services.c hands every game log
+-// line to rtts_autosave_game_log, which follows those two screens.
++// line to rtts_autosave_game_log, which follows those two screens. Bug Fixes: making a player also goes through the
++// player editor ("BpCustomize", "CreatePlayer"), so a player edit kept in between is dropped too (MLB_SAVE_EDITS).
  #include <stdint.h>
  #include <string.h>
  
-@@ -36,17 +85,26 @@ static const struct {
+@@ -46,17 +85,26 @@ static const struct {
      const char *build;
      uint64_t autosave, get_record, screen_slot, screen_fn;
      uint64_t slot[NBUY], fn[NBUY];
@@ -6182,22 +6181,10 @@ index 74c6846..95ee403 100644
  };
  static const char *const k_names[NBUY] = {
      "<rtts autosave 0>", "<rtts autosave 1>", "<rtts autosave 2>", "<rtts autosave 3>",
-@@ -57,11 +115,43 @@ static const char *const k_names[NBUY] = {
- static int g_build = -1;
- static uint64_t g_hook[NBUY], g_screen_hook, g_screen_prev;
- static uint64_t g_record;   // f_700045c704's out argument (guest addresses are host addresses in this port)
--// All three with __atomic: the commands and the screen function are thought to run on the same UI thread [H], not
--// shown.
-+// All with __atomic: the commands and the screen function are thought to run on the same UI thread [H], not shown.
-+// g_making is set on the thread that logs the screen's line, which in every run logged it before that screen's
-+// commands and screen function ran.
- static int g_pending;          // a save is wanted
- static int g_in_cmd;           // wrapped commands running
- static int g_screen_in_cmd;    // the screen changed while one ran
-+static int g_making;           // a new player is being made (BpCreation entered, the home screen not yet)
-+static int g_installed;        // every slot holds its hook
-+static int g_nosave;           // MLB_CREATION_NOSAVE is on (the Bug Fixes mod's switch)
-+
+@@ -76,6 +124,34 @@ static int g_screen_in_cmd;    // the screen changed while one ran
+ static int g_making;           // a new player is being made (BpCreation entered, the home screen not yet)
+ static int g_installed;        // every slot holds its hook
+ 
 +// Player edits (the editor's commands run on the screen function's thread; __atomic as above).
 +#define NEDIT 64
 +#define EDIT_ANSWER 0x954d5f59u
@@ -6225,19 +6212,11 @@ index 74c6846..95ee403 100644
 +static uint64_t g_press_at;    // when the next A press starts (plat_now_ns); 0: none due
 +static int g_press_left;       // presses after that one
 +static uint64_t g_guard_until; // the player's A is held back until then
- 
++
  static uint64_t rd64(uint64_t a) { return a && mem_guest_readable(a, 8) ? *(const uint64_t *)(uintptr_t)a : 0; }
  
-@@ -105,7 +195,7 @@ static void buy_hook(Cpu *c) {
-     memcpy(x, c->x, sizeof x);
-     memcpy(v, c->v, sizeof v);
-     int after = i >= 8 ? tokens(c) : 0;
--    if (i < 8 || (before >= 0 && after >= 0 && after != before)) {
-+    if (!__atomic_load_n(&g_making, __ATOMIC_ACQUIRE) && (i < 8 || (before >= 0 && after >= 0 && after != before))) {
-         if (!__atomic_exchange_n(&g_pending, 1, __ATOMIC_ACQ_REL))
-             rt_log("rtts autosave: an upgrade command ran; the career is saved when this screen is left");
-     }
-@@ -116,15 +206,169 @@ static void buy_hook(Cpu *c) {
+ // The player's tokens, or -1 when there is no Road to the Show player.
+@@ -129,12 +205,143 @@ static void buy_hook(Cpu *c) {
      memcpy(c->v, v, sizeof v);
  }
  
@@ -6384,33 +6363,7 @@ index 74c6846..95ee403 100644
      c->x[0] = r;
  }
  
-+// services.c: every log line of the game. "uiEngine: Entering screen: [TitleLoadingScreen->BpCreation (4)]" starts
-+// making a new player, "...->RttSHomeMain (19)" (the Road to the Show home) ends it.
-+void rtts_autosave_game_log(const char *text, int n) {
-+    static const char pre[] = "uiEngine: Entering screen: [";
-+    enum { PRE = sizeof pre - 1 };
-+    if (!__atomic_load_n(&g_installed, __ATOMIC_ACQUIRE) || !__atomic_load_n(&g_nosave, __ATOMIC_ACQUIRE)) return;
-+    if (n <= PRE || memcmp(text, pre, PRE)) return;
-+    const char *s = text + PRE, *end = text + n;
-+    while (s + 1 < end && !(s[0] == '-' && s[1] == '>')) s++;
-+    if (s + 1 >= end) return;
-+    s += 2;
-+    int k = 0;
-+    while (s + k < end && s[k] != ' ' && s[k] != ']') k++;
-+    int making;
-+    if (k == 10 && !memcmp(s, "BpCreation", 10)) making = 1;
-+    else if (k == 12 && !memcmp(s, "RttSHomeMain", 12)) making = 0;
-+    else return;
-+    if (making) __atomic_store_n(&g_pending, 0, __ATOMIC_RELEASE);
-+    if (__atomic_exchange_n(&g_making, making, __ATOMIC_ACQ_REL) != making)
-+        rt_log(making ? "rtts autosave: a new player is being made; no autosave until Road to the Show's home opens"
-+                      : "rtts autosave: Road to the Show's home opened; upgrades are saved again");
-+}
-+
- static int poke64(uint64_t addr, uint64_t val) {
-     uint64_t page = addr & ~0xfffull, end = (addr + 8 + 0xfff) & ~0xfffull, stop = 0;
-     int prot = plat_mem_state(page, end, &stop);
-@@ -135,6 +379,81 @@ static int poke64(uint64_t addr, uint64_t val) {
+@@ -170,6 +377,81 @@ static int poke64(uint64_t addr, uint64_t val) {
      return 1;
  }
  
@@ -6492,21 +6445,14 @@ index 74c6846..95ee403 100644
  // boot.c: after the modules are loaded and after tutorials_apply, before hostfn_seal.
  void rtts_autosave_apply(void) {
      if (!cfg_bool("MLB_RTTS_AUTOSAVE")) return;
-@@ -175,5 +494,15 @@ void rtts_autosave_apply(void) {
-             return;
-         }
+@@ -212,4 +494,8 @@ void rtts_autosave_apply(void) {
      }
-+    __atomic_store_n(&g_installed, 1, __ATOMIC_RELEASE);
+     __atomic_store_n(&g_installed, 1, __ATOMIC_RELEASE);
      rt_log("rtts autosave: upgrades bought in Road to the Show are saved when their screen is left");
 +    const char *edits = cfg_get("MLB_SAVE_EDITS");   // the Bug Fixes mod's switch: 1 or "on"
 +    if (edits && (!strcmp(edits, "1") || !strcmp(edits, "on"))) edits_install();
 +    const char *confirm = cfg_get("MLB_SAVE_CONFIRM");   // the Bug Fixes mod's switch: 1 or "on"
 +    if (confirm && (!strcmp(confirm, "1") || !strcmp(confirm, "on"))) confirm_install();
-+    const char *nosave = cfg_get("MLB_CREATION_NOSAVE");   // the Bug Fixes mod's switch: 1 or "on"
-+    if (nosave && (!strcmp(nosave, "1") || !strcmp(nosave, "on"))) {
-+        __atomic_store_n(&g_nosave, 1, __ATOMIC_RELEASE);
-+        rt_log("rtts autosave: nothing is saved while a new Road to the Show player is being made");
-+    }
  }
 diff --git a/runtime/mlb/rubber.c b/runtime/mlb/rubber.c
 new file mode 100644
@@ -6930,26 +6876,6 @@ index 0000000..b3203f0
 +    {25073,   650,   650,   650}, {25113, -1060, -1060, -1060}, {25273,   750,   750,   750}, {25305,   970,   970,   970},
 +    {25359,   570,   570,   570},
 +};
-diff --git a/runtime/mlb/services.c b/runtime/mlb/services.c
-index 35d04be..01fc0ef 100644
---- a/runtime/mlb/services.c
-+++ b/runtime/mlb/services.c
-@@ -14,6 +14,7 @@
- #include "prompts.h"
- 
- void gfx_capture_arm(long ahead);   // runtime/gfx/gfx_stubs.c
-+void rtts_autosave_game_log(const char *text, int n);   // rtts_autosave.c
- 
- static int memmem_lite(const char *h, int n, const char *needle) {
-     int m = (int)strlen(needle);
-@@ -56,6 +57,7 @@ static void lm_packet(const uint8_t *d, uint64_t n) {
-     if (!text) return;
-     while (text_n > 0 && (text[text_n - 1] == '\n' || text[text_n - 1] == '\r' || !text[text_n - 1])) text_n--;
-     hid_game_log(text, text_n);   // fastball: the screens the game enters switch MLB_PAD_MAP=auto
-+    rtts_autosave_game_log(text, text_n);   // and tell when a new Road to the Show player is being made
-     if (memmem_lite(text, text_n, "===GAME ENTERED===")) {   // MLB_DRAWLOG=game: one frame's capture in the match
-         const char *dl = cfg_get("MLB_DRAWLOG");
-         if (dl && !strcmp(dl, "game")) gfx_capture_arm(600);
 diff --git a/runtime/mlb/shapes.c b/runtime/mlb/shapes.c
 new file mode 100644
 index 0000000..d8fffc2

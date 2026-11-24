@@ -206,7 +206,10 @@ main { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
   font-size: 14px; line-height: 1.25; color: rgba(255, 255, 255, 0.78);
 }
 .mod-row.focused .row-desc { color: rgba(4, 18, 15, 0.85); }
-.row-parts { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; height: 20px; overflow: hidden; }   /* chips that do not fit drop out whole */
+/* chips that do not fit drop out whole; each chip is the row's full 20px, also when several have wrapped away (the
+   lines then no longer squeeze it) */
+.row-parts { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px; min-width: 0; height: 20px; overflow: hidden; }
+.row-parts > * { height: 20px; }
 .part, .badge-s {
   flex: none; padding: 1px 7px; border-radius: 999px; white-space: nowrap;
   font-family: var(--head); font-weight: 700; font-size: 12px; letter-spacing: 0.07em; line-height: 1.3;
@@ -245,7 +248,9 @@ main { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
 
 /* the picker (player mode: first run, GET MODS): release mods with their size and a tick box, or REMOVE */
 .pick-size {
-  flex: none; align-self: center; width: 70px; text-align: right;
+  /* one width for every row of the list: the widest text in it (--pick-size-w, set by fitSizeColumn in app.js), so
+     the right edges and the descriptions' cut-off points line up; 70px at least, as before versions */
+  flex: none; align-self: center; width: var(--pick-size-w, auto); min-width: 70px; text-align: right;
   text-box: trim-both cap alphabetic;   /* its figures, not the line box, centre on the row */
   font-family: var(--head); font-weight: 700; font-size: 15px; letter-spacing: 0.04em; white-space: nowrap;
   color: var(--text-dim);
@@ -277,6 +282,18 @@ main { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
 }
 .pick-note { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 14px; line-height: 1.35; color: var(--text-dim); }
 .pick-foot .btn { flex: none; text-align: center; }
+/* a newer release on GitHub: one line under the panel head, its edges on the head's (16px in) */
+.newer {
+  flex: none; display: flex; align-items: center; gap: 14px; padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+/* the text's line sits in a box built like the small button's (32px: 1px border + 2px padding on top, 1px border
+   below, the line centred in what is left), so its capitals land on the button's at every scale, snapping included */
+.newer-text {
+  display: flex; align-items: center; min-height: 32px; padding: 3px 0 1px; line-height: normal;
+  color: var(--text); user-select: text;
+}
+.newer .btn { flex: none; text-align: center; }
 
 /* the detail card: the game's teal-framed info card */
 .mod-panel, .detail { align-self: start; max-height: 100%; }
@@ -349,10 +366,21 @@ main { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
 .detail-flag.on { background: var(--mint); border-color: var(--mint); color: var(--ink); }
 .detail-body { padding: 12px 22px 18px; display: flex; flex-direction: column; flex: 1 0 auto; }
 .detail-name {
-  margin: 0; font-size: clamp(26px, 2.5vw, 42px); line-height: 0.95; min-width: 0; overflow-wrap: anywhere;
+  --name-size: clamp(26px, 2.5vw, 42px);   /* also raises the version tag (.detail-version) */
+  margin: 0; font-size: var(--name-size); line-height: 0.95; min-width: 0; overflow-wrap: anywhere;
   text-box: trim-both cap alphabetic;   /* its capitals, not the line box, centre against the flag and button */
 }
 .detail-head .btn { flex: none; min-width: 130px; text-align: center; }
+/* the version tag ("v6") follows the name's last word inside the heading, so a long name wraps exactly as it did
+   without it; it is raised so its figures centre on the name's capitals, as the ON flag's do. Bahnschrift's
+   capitals are 0.71 em tall (measured): the tag's figure centre sits 0.355 x 14px above its baseline, the name's
+   0.355 x the name's size, so it is raised by the difference */
+.detail-version {
+  display: inline-block; margin-left: 12px; vertical-align: calc((var(--name-size) - 14px) * 0.355);
+  font-size: 14px; line-height: 1; font-style: normal; font-stretch: normal; text-transform: none;
+  padding: 5px calc(9px - 0.07em) 5px 9px;   /* less on the right: the letter spacing trails the last figure */
+  text-box: trim-both cap alphabetic;   /* its figures, not the line box, fill the pill between the paddings */
+}
 .detail-desc { margin: 10px 0 0; font-size: 17px; line-height: 1.4; color: #e8f4f2; user-select: text; }
 .detail .sub-head { margin-top: 12px; }
 /* the feature list ("features" in mod.json): section titles in mint, bullets, notes */

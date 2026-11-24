@@ -8,6 +8,6 @@
 - **Road to the Show manual save:** once you name the save, it is written
   - No second confirm on the save list, and no second save prompt by accident right after
   - Cancelling the name still cancels the save; saves always go to a new file
-- **New Road to the Show player:** the game no longer saves your player while you are still making it
-  - Before, a half-made player named "Joe Random" could be saved as your career
-  - If the game closes before you finish, you make the player again instead of getting that one
+- **New Road to the Show player:** this fix now comes with Fastball 0.2.1, so the mod no longer carries it
+  - A half-made player named "Joe Random" is no longer saved as your career
+  - Player edits you keep while making the player are not saved early either

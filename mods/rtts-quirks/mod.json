@@ -2,6 +2,7 @@
  "card": "release/card.json",
  "features": "release/features.md",
  "name": "Quirks+",
+ "version": "1",
  "order": 40,
  "art": "ICON_COACH_CONFUSED_LG",
  "description": "Earn quirks in Road to the Show: pick one after the draft, once when you join a college, and every spring (more choices after a good season). Each offer says what the quirks do, and you can always pass.",

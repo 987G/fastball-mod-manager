@@ -61,3 +61,10 @@ def open_folder(path: Path) -> None:
     if not Path(path).is_dir():
         raise ActionError(f"{path} does not exist yet.", 404)
     os.startfile(str(path))
+
+
+def open_page(url: str) -> None:
+    """Show a GitHub page in the default browser; ActionError(400) for any other address."""
+    if not (isinstance(url, str) and url.startswith("https://github.com/")):
+        raise ActionError(f"cannot open {url!r}")
+    os.startfile(url)

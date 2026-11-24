@@ -537,5 +537,131 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue(own.is_dir())
 
 
+class NewerReleaseTests(unittest.TestCase):
+    """newer_release: the newest GitHub release's index.json, through an injected opener (never
+    the network), named only when its tag is newer than this copy's."""
+    INFO = {"repo": "owner/name", "tag": "2026.11.2", "fastball": FASTBALL}
+    LATEST = "https://github.com/owner/name/releases/latest/download/index.json"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.state = Path(tmp.name) / "state"
+        self.settings = dataclasses.replace(config.Settings(), state=self.state, release_source="")
+        self.requests = []
+
+    @staticmethod
+    def index(release: str, fastball: str = FASTBALL) -> dict:
+        entry = {"file": "x.zip", "sha256": "0" * 64, "size": 1}
+        return {"release": release, "fastball": fastball, "runtime": dict(entry),
+                "mods": [dict(entry, id="a", name="A")]}
+
+    def opener(self, body):
+        """An urlopen stand-in that answers `body` (bytes, or an exception to raise)."""
+        def urlopen(request, timeout=None):
+            self.requests.append((request, timeout))
+            if isinstance(body, BaseException):
+                raise body
+            return io.BytesIO(body)
+        return urlopen
+
+    def newer(self, body, info=INFO):
+        data = body if isinstance(body, (bytes, BaseException)) else json.dumps(body).encode()
+        return releases.newer_release(self.settings, info, opener=self.opener(data))
+
+    def log_lines(self) -> list[str]:
+        try:
+            text = (self.state / "logs" / "manager.log").read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return []
+        return text.splitlines()
+
+    def test_a_newer_release_is_named_with_its_page(self):
+        self.assertEqual(self.newer(self.index("2026.11.10")), {
+            "release": "2026.11.10", "fastball": FASTBALL,
+            "page": "https://github.com/owner/name/releases/tag/2026.11.10",
+            "fastball_changed": False})
+        (request, timeout), = self.requests
+        self.assertEqual(request.full_url, self.LATEST)
+        self.assertEqual(request.get_header("User-agent"), releases.USER_AGENT)
+        self.assertLessEqual(timeout, 10)
+        self.assertEqual(self.log_lines(), [])
+
+    def test_a_newer_release_on_another_fastball_says_so(self):
+        found = self.newer(self.index("2026.12.1", fastball="0.3.0+1234567"))
+        self.assertEqual((found["fastball"], found["fastball_changed"]), ("0.3.0+1234567", True))
+
+    def test_the_same_an_older_or_an_undated_release_is_none(self):
+        for tag, info_tag in (("2026.11.2", "2026.11.2"), ("2026.11.1", "2026.11.2"),
+                              ("2026.10.30", "2026.11.2"), ("preview-1", "2026.11.2"),
+                              ("2026.12.1", "preview-1")):
+            with self.subTest(latest=tag, this=info_tag):
+                self.assertIsNone(self.newer(self.index(tag), dict(self.INFO, tag=info_tag)))
+        self.assertEqual(self.log_lines(), [])
+
+    def test_a_bad_index_is_none_and_one_log_line(self):
+        bad = {"not json": b"<html>rate limited</html>", "too large": b" " * (releases.INDEX_MAX + 2),
+               "no runtime": dict(self.index("2026.12.1"), runtime=None),
+               "not an object": [1, 2],
+               # int() refuses more than 4300 digits: ValueError, which must not escape
+               "huge tag part": self.index("2026." + "9" * 5000),
+               "tag over 64 characters": self.index("2026.11." + "1" * 60)}
+        for label, body in bad.items():
+            with self.subTest(label):
+                before = len(self.log_lines())
+                self.assertIsNone(self.newer(body))
+                lines = self.log_lines()[before:]
+                self.assertEqual(len(lines), 1, lines)
+                self.assertIn("newer release", lines[0])
+                self.assertNotIn("Release source", lines[0])   # a hint for downloads, not this check
+
+    def test_a_huge_tag_in_release_json_never_raises(self):
+        info = dict(self.INFO, tag="2026." + "9" * 5000)
+        self.assertIsNone(self.newer(self.index("2026.12.1"), info))
+        self.assertEqual(len(self.log_lines()), 1)
+
+    def test_a_network_error_is_none_and_one_log_line(self):
+        import http.client
+        import urllib.error
+        for err in (urllib.error.URLError("no route"), TimeoutError("timed out"),
+                    urllib.error.HTTPError(self.LATEST, 404, "Not Found", {}, None),
+                    http.client.RemoteDisconnected("closed"), ValueError("odd")):
+            with self.subTest(type(err).__name__):
+                before = len(self.log_lines())
+                self.assertIsNone(self.newer(err))
+                self.assertEqual(len(self.log_lines()) - before, 1)
+
+    def test_a_failed_check_keeps_the_last_good_answer(self):
+        last = {"release": "2026.11.3", "fastball": FASTBALL, "fastball_changed": False,
+                "page": "https://github.com/owner/name/releases/tag/2026.11.3"}
+        for label, body in (("network", OSError("unreachable")), ("bad index", b"<html>")):
+            with self.subTest(label):
+                found = releases.newer_release(self.settings, self.INFO, opener=self.opener(body),
+                                               last=last)
+                self.assertIs(found, last)
+
+    def test_a_good_check_replaces_the_last_answer(self):
+        last = {"release": "2026.11.3", "fastball": FASTBALL, "fastball_changed": False,
+                "page": "https://github.com/owner/name/releases/tag/2026.11.3"}
+        data = json.dumps(self.index("2026.11.2")).encode()   # this copy's own tag: nothing newer
+        self.assertIsNone(releases.newer_release(self.settings, self.INFO,
+                                                 opener=self.opener(data), last=last))
+        data = json.dumps(self.index("2026.11.4")).encode()
+        self.assertEqual(releases.newer_release(self.settings, self.INFO, opener=self.opener(data),
+                                                last=last)["release"], "2026.11.4")
+
+    def test_no_release_json_never_asks(self):
+        self.assertIsNone(self.newer(self.index("2026.12.1"), info=None))
+        self.assertEqual(self.requests, [])
+        self.assertEqual(self.log_lines(), [])
+
+    def test_a_release_source_of_its_own_never_asks(self):
+        for src in ("C:\\releases\\test", "https://example.com/rel/"):
+            with self.subTest(src):
+                self.settings.release_source = src
+                self.assertIsNone(self.newer(self.index("2026.12.1")))
+        self.assertEqual(self.requests, [])
+
+
 if __name__ == "__main__":
     unittest.main()

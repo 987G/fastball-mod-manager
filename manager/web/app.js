@@ -557,6 +557,15 @@ function detailTop(mod) {
       : h("div", { class: "detail-art-img", style: { backgroundImage: artUrl(mod) } }));
 }
 
+/** A mod's version as the page shows it: "v" in front when it starts with a digit ("6" -> "v6"; "beta-3" stays). */
+const versionText = (v) => (/^\d/.test(v) ? "v" + v : v);
+
+/** The mod's name in the detail card, with a small version tag after it when it has a version (drawn as text). */
+function detailTitle(name, version) {
+  return h("h2", { class: "detail-name" }, name,
+    version ? h("span", { class: "part detail-version", title: "Version " + version }, versionText(version)) : null);
+}
+
 function detailFor(mod) {
   if (!mod) {
     return [h("div", { class: "detail-body" },
@@ -568,7 +577,7 @@ function detailFor(mod) {
     detailTop(mod),
     h("div", { class: "detail-body" },
       h("div", { class: "detail-head" },
-        h("h2", { class: "detail-name" }, mod.name),
+        detailTitle(mod.name, mod.version),
         h("div", { class: "detail-actions" },
           h("span", { class: "detail-flag" + (mod.on ? " on" : "") }, mod.on ? "ON" : "OFF"),
           h("button", { class: "btn " + (mod.on ? "ghost" : "mint"), type: "button", "data-key": "toggle:" + mod.id,
@@ -588,7 +597,21 @@ function detailFor(mod) {
 
 let lastListKey = "", lastDetailKey = "";
 let homePicking = null;    // whether Home showed the picker at the last render
+/** The line above the mod list when GitHub has a newer release (state.newer_release; drawn as text). */
+function renderNewer() {
+  const n = state.newer_release;
+  $("newer").hidden = !n;
+  if (!n) return;
+  // Fastball as players know it ("0.3.0", not the build "0.3.0+1a2b3c4"); the server compared the full strings
+  const fastball = String(n.fastball).split("+")[0];
+  const text = `Release ${n.release} is out` + (n.fastball_changed ? ` and needs Fastball ${fastball}.` : ".");
+  $("newer-text").textContent = text;
+  $("newer-text").title = "A newer release of the manager: download its zip and unzip it over this folder.";
+}
+$("newer-open").addEventListener("click", () => openFolder("release-page"));
+
 function renderHome() {
+  renderNewer();
   const picking = pickerShown();
   const have = (state.mods || []).length > 0;
   const get = $("get-mods");
@@ -736,7 +759,15 @@ function tickMark() {
 function pickBadges(m) {
   if (!m.installed) return [];
   const out = [["INSTALLED", "ok", "It is in your mods folder."]];
-  if (m.update) out.push(["UPDATE", "warn", `You have release ${m.installed_release}; downloading updates it.`]);
+  if (!m.update) return out;
+  // the release tag decides an update; the badge names the versions when both are known and differ
+  const from = m.local_version, to = m.own_version;
+  if (from && to && from !== to) {
+    out.push([`${versionText(from)} → ${versionText(to)}`, "warn",
+      `You have ${versionText(from)} (release ${m.installed_release}); downloading updates it to ${versionText(to)}.`]);
+  } else {
+    out.push(["UPDATE", "warn", `You have release ${m.installed_release}; downloading updates it.`]);
+  }
   return out;
 }
 
@@ -765,7 +796,8 @@ function pickRowFor(m, focused) {
     h("div", { class: "row-parts" },
       pickBadges(m).map(([text, kind, why]) => h("span", { class: "badge-s " + kind, title: why }, text)),
       m.parts.map((p) => h("span", { class: "part" }, PART_LABELS[p])))),
-  h("span", { class: "pick-size", title: "Download size" }, sizeText(m.size)),
+  h("span", { class: "pick-size", title: m.own_version ? "Version and download size" : "Download size" },
+    (m.own_version ? versionText(m.own_version) + " · " : "") + sizeText(m.size)),
   right);
 }
 
@@ -805,18 +837,19 @@ function pickDetailFor(m) {
         : "Pick the mods you want from this release's list, then download them."))];
   }
   const ticked = pick.ticked.has(m.id);
-  const kv = [h("dt", {}, "Version"), h("dd", {}, m.version || "—"),
+  const kv = [h("dt", {}, "Version"), h("dd", {}, m.own_version ? versionText(m.own_version) : m.version || "—"),
     h("dt", {}, "Size"), h("dd", {}, sizeText(m.size)),
     h("dt", {}, "Parts"), h("dd", {}, m.parts.map((p) => PART_LABELS[p].toLowerCase()).join(", ") || "—")];
   if (m.installed) {
     kv.push(h("dt", {}, "You have"), h("dd", { class: m.update ? "warn" : "ok" },
+      (m.local_version ? `${versionText(m.local_version)}, ` : "") +
       `release ${m.installed_release}` + (m.update ? " — downloading updates it" : "")));
   }
   return [
     detailTop(m),
     h("div", { class: "detail-body" },
       h("div", { class: "detail-head" },
-        h("h2", { class: "detail-name" }, m.name),
+        detailTitle(m.name, m.own_version),
         h("div", { class: "detail-actions" },
           h("span", { class: "detail-flag" + (ticked || m.installed ? " on" : "") }, m.installed ? "INSTALLED" : sizeText(m.size)),
           m.installed
@@ -829,6 +862,15 @@ function pickDetailFor(m) {
       h("div", { class: "sub-head" }, "Download"),
       h("dl", { class: "kv changes" }, kv)),
   ];
+}
+
+/** Give every row's size column ("v7 · 53.2 MB") the width of the widest one, so their right edges and the
+ *  descriptions' cut-off points line up down the list (--pick-size-w; unset while there is nothing to measure). */
+function fitSizeColumn() {
+  const list = $("mod-list");
+  list.style.removeProperty("--pick-size-w");   // natural widths first
+  const widest = Math.max(0, ...[...list.querySelectorAll(".pick-size")].map((el) => el.getBoundingClientRect().width));
+  if (widest > 0) list.style.setProperty("--pick-size-w", widest + "px");
 }
 
 let lastPickKey = "", lastPickDetailKey = "";
@@ -854,6 +896,7 @@ function renderPicker() {
     lastPickKey = listKey;
     replaceKeyed($("mod-list"), list.length ? list.map((m) => pickRowFor(m, m.id === pick.focus)) : [pickEmpty()]);
   }
+  fitSizeColumn();   // every render: the list may have been drawn while Home was hidden (nothing to measure then)
   const mod = list.find((m) => m.id === pick.focus) || null;
   const detailKey = JSON.stringify(["pick", mod, pick.ticked.has(mod && mod.id), pick.catalog && pick.catalog.release, busy]);
   if (detailKey !== lastPickDetailKey) {

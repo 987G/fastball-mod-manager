@@ -53,7 +53,7 @@ def make_tree(tree: Path) -> None:
     put(tree / "manager" / "web" / "index.html", "<!doctype html>\n")
     card = {"tagline": "A does things", "highlights": [["One", "first thing"]], "note": ""}
     put(tree / "mods" / "a" / "mod.json", json.dumps({
-        "name": "Mod A", "description": "The first mod", "art": "ICON_A_LG", "order": 1,
+        "name": "Mod A", "description": "The first mod", "art": "ICON_A_LG", "order": 1, "version": "6",
         "card": "release/card.json", "features": "release/features.md", "patches": "patches.txt",
         "files": {"install": ["python", "{mod}/tools/install.py"]}, "profile": "own"}))
     put(tree / "mods" / "a" / "release" / "card.json", json.dumps(card))
@@ -132,7 +132,8 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(index["runtime"]["file"], "runtime-0.2.0-74a6525.zip")
         a, b = index["mods"]
         self.assertEqual(a["file"], f"mod-a-{TAG}.zip")
-        self.assertEqual((a["name"], a["version"], a["description"]), ("Mod A", TAG, "The first mod"))
+        self.assertEqual((a["name"], a["version"], a["description"]), ("Mod A", "6", "The first mod"))
+        self.assertEqual(b["version"], TAG)   # no version in its mod.json: the release tag, as before
         self.assertEqual(a["art"], "ICON_A_LG")
         self.assertEqual(a["card"]["tagline"], "A does things")
         self.assertTrue(a["features"])

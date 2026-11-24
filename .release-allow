@@ -1,5 +1,5 @@
 # Files allowed over 2 MB: <sha256>  <path> (a changed file must be approved again with its new sha256),
 # or text  <path> for a text file regenerated each release (exempt from the size rule only).
-ecd6968ada8058543a8bf0d2e28397ed4f3414ecf150ea96d72db2d5584de3fa  mods/pitch-types/deliveries/ship/deliveries_2026.pack
-9e56884df9ab744c02554b3077724b73c2df9697baa7cc9ad35642e458bf8cc2  mods/pitch-types/deliveries/ship/slides_2026.pack
+50ed745ff3de79f9e41ae93ddd2fbb1264ee607fb77c4ebce29ff61df4d6c227  mods/pitch-types/deliveries/ship/deliveries_2026.pack
+29279484c480ae3a53f1b1686443242c7cc67ef73895c00ce00220b5333029da  mods/pitch-types/deliveries/ship/slides_2026.pack
 text  runtime/mods.patch

@@ -6,7 +6,7 @@ with where it comes from and its licence. This file is in the manager zip and in
 ## Fastball
 
 The runtime zip (`runtime-<Fastball release>.zip`) holds `runtime/libmlbrt.a`: Fastball's runtime library, built
-from Fastball 0.2.0 (tag `v0.2.0`, commit `74a6525bd0036335f01c1906fd11146d70a1cf12`) with the mods' changes, and
+from Fastball 0.2.1 (tag `v0.2.1`, commit `74d3f93e85533fa7952847088bbfd5910820fde7`) with the mods' changes, and
 some of Fastball's headers and `recomp/` files with those changes. Fastball's source: https://github.com/sam110411/fastball
 
 ```
@@ -35,7 +35,7 @@ SOFTWARE.
 
 ## What Fastball's runtime library holds from others
 
-From Fastball 0.2.0's own `THIRD_PARTY_NOTICES.md`, the parts compiled into `libmlbrt.a`:
+From Fastball 0.2.1's own `THIRD_PARTY_NOTICES.md`, the parts compiled into `libmlbrt.a`:
 
 | Component | Source | Licence |
 |---|---|---|

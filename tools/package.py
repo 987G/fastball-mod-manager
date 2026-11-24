@@ -16,6 +16,7 @@ Writes into --out:
   index.json                 {"release", "fastball", "runtime": {"file", "sha256", "size"}, "mods": [{"id", "name",
                              "version", "description", "art", "card", "features", "parts", "file", "sha256",
                              "size"}]}: what the manager's mod picker shows, read by the exported manager's own loader
+                             ("version" is the mod's own from its mod.json, else the release tag)
 
 Mods, the runtime listing and every check come from the exported manager's own code (app.mods, app.toolkit,
 app.releases), so the release holds what the manager reads. Before --out is filled, each zip is unpacked and checked
@@ -248,7 +249,7 @@ def _mod_entry(app, mod, tag: str) -> dict:
     """A mod's index entry as the picker reads it (server.catalog_mod), before its file is known."""
     flags = {"files": bool(mod.files), "runtime": bool(mod.runtime), "patches": bool(mod.patches),
              "server": bool(mod.server), "profile": mod.profile == "own"}
-    entry = {"id": mod.id, "name": mod.name, "version": tag,
+    entry = {"id": mod.id, "name": mod.name, "version": getattr(mod, "version", None) or tag,  # its own, else the tag
              "description": mod.description if isinstance(mod.description, str) else ""}
     if isinstance(mod.art, str) and app.server.ART_NAME.match(mod.art):
         entry["art"] = mod.art

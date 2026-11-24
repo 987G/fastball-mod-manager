@@ -2,6 +2,7 @@
  "card": "release/card.json",
  "features": "release/features.md",
  "name": "Pitching++",
+ "version": "7",
  "order": 20,
  "art": "ICON_COACH_PITCHING_LG",
  "description": "Every pitcher pitches like his real 2026 self: his own pitch shapes and break as seen from his hand, his real pitches and how often he throws each by batter side and count, and MLB pitch locations. He throws from his own delivery, edited so he lets go of the ball where he really does, stands where he really does on the rubber, and has his own slide step. Every pitcher's edited delivery is also listed in the player editor, so you can give it to any player. Movement ratings follow real MLB movement, so ratings changes in franchise modes still count. The Fastball and Offspeed Pitch Speed sliders reach real MLB pitch speed at +5 (0 and below stay the game's own), and a faster pitch adds exit velocity at the real rate.",

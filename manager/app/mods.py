@@ -29,6 +29,7 @@ class Mod:
     features: list | None = None  # its feature list ("features": a Markdown file in its folder), parsed
     card_text: dict | None = None  # its title card text ("card": a .json file in its folder), validated
     ship: list | None = None      # globs of the only files ever published ("ship"), relative to its folder
+    version: str | None = None    # its own version ("version": short text like "6" or "1.2")
 
 
 ART_FILE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
@@ -36,6 +37,18 @@ FEATURE_SUFFIXES = (".md", ".txt")
 CARD_TEXT_SUFFIX = ".json"
 CARD_TEXT_KEYS = ("tagline", "highlights", "note")
 MAX_HIGHLIGHTS = 3
+VERSION_MAX = 16  # characters in a mod's "version"
+
+
+def clean_version(value) -> str:
+    """A mod's version as the page draws it: text of 1 to VERSION_MAX characters, trimmed;
+    ValueError saying what is wrong otherwise."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("version must be short text, like \"6\" or \"1.2\"")
+    value = value.strip()
+    if len(value) > VERSION_MAX:
+        raise ValueError(f"version must be at most {VERSION_MAX} characters, not {len(value)}")
+    return value
 
 
 def _own_file(folder: Path, value: str, what: str) -> Path:
@@ -186,13 +199,20 @@ def _load(folder: Path) -> Mod:
         patches = (folder / patches).absolute()
         if not patches.is_file():
             raise ManifestError(f"mod {folder.name!r}: its patch file {patches} is missing")
+    version = None
+    if "version" in data:
+        try:
+            version = clean_version(data["version"])
+        except ValueError as e:
+            raise ManifestError(f"mod {folder.name!r}: {path}: {e}") from None
     return Mod(id=folder.name, name=name, description=data.get("description", ""),
                folder=folder, art=data.get("art", ""), files=data.get("files"),
                runtime=data.get("runtime"), server=data.get("server"),
                profile=data.get("profile"), order=data.get("order", 100), patches=patches,
                art_file=_art_file(folder, data.get("art")), card=_card(folder, data.get("card")),
                features=_features(folder, data.get("features")),
-               card_text=_card_text(folder, data.get("card")), ship=_ship(folder, data.get("ship")))
+               card_text=_card_text(folder, data.get("card")), ship=_ship(folder, data.get("ship")),
+               version=version)
 
 
 def load_all(settings: Settings) -> list[Mod]:

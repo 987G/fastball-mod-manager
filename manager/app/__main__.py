@@ -97,6 +97,7 @@ def main() -> None:
     note(settings, f"Serving {url}")
     try:
         app.refresh_in_background()
+        app.check_newer_in_background()   # a dev copy (no release.json) never asks GitHub
         launched = time.monotonic()
         edge = open_window(settings, url)
         wait_for_exit(app, edge, launched)

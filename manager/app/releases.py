@@ -36,8 +36,12 @@ RUNTIME_MARK = ".release.json"  # in runtime_dir: {"release", "sha256"} of the r
 INCOMING, OUTGOING = ".incoming", ".outgoing"  # in the mods folder, during a swap only
 DOWNLOADS = "download-"         # temp folders in state
 GITHUB = "https://github.com/{repo}/releases/download/{tag}/"
+LATEST = "https://github.com/{repo}/releases/latest/download/" + INDEX  # redirects to the newest
+PAGE = "https://github.com/{repo}/releases/tag/{tag}"
 USER_AGENT = "ShowModManager"
 TIMEOUT = 60                    # seconds without data before a download fails
+LATEST_TIMEOUT = 10             # the check for a newer release: short, it only shows a line
+TAG_MAX = 64                    # longest release tag that check accepts
 BLOCK = 1 << 20
 INDEX_MAX = 4 << 20
 
@@ -183,6 +187,56 @@ def fetch_index(settings: Settings, info: dict | None) -> dict:
     except (UnicodeDecodeError, ValueError):
         index = None
     return _check_index(index, where)
+
+
+# --- a newer release -------------------------------------------------------------------------
+def _note(settings: Settings, text: str) -> None:
+    """A line in state/logs/manager.log, as __main__.note writes them (best effort)."""
+    try:
+        logs = Path(settings.state) / "logs"
+        logs.mkdir(parents=True, exist_ok=True)
+        with open(logs / "manager.log", "a", encoding="utf-8") as f:
+            f.write(f"[manager {time.strftime('%Y-%m-%d %H:%M:%S')}] {text}\n")
+    except OSError:
+        pass
+
+
+def newer_release(settings: Settings, info: dict | None, opener=None,
+                  last: dict | None = None) -> dict | None:
+    """The newest release on GitHub when its tag is newer than this copy's: {"release",
+    "fastball", "fastball_changed" (it names another Fastball than this copy), "page" (its
+    release page)}. None otherwise: no release.json (`info` None), a Release source of its own
+    (a test release), the same, an older or an undated tag. A failure (network, a bad index)
+    writes one line to the manager's log and answers `last`, the previous good answer, so a
+    check that could not reach GitHub changes nothing. Never raises."""
+    if info is None or settings.release_source:
+        return None
+    url = LATEST.format(repo=info["repo"])
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with (opener or urllib.request.urlopen)(request, timeout=LATEST_TIMEOUT) as stream:
+            raw = stream.read(INDEX_MAX + 1)
+        if len(raw) > INDEX_MAX:
+            raise ReleaseError("its list of mods is too large to be one")
+        try:
+            index = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            index = None
+        why = _index_problem(index)   # not _check_index: its hint about Release source is for downloads
+        if not why and len(index["release"]) > TAG_MAX:
+            why = f"its release tag is longer than {TAG_MAX} characters"
+        if why:
+            raise ReleaseError(f"its list of mods is damaged: {why}")
+        tag, ours = _release_key(index["release"]), _release_key(info["tag"])  # int() can refuse
+    except Exception as err:  # a background check: whatever went wrong, the page keeps its line
+        why = " ".join(str(err).split()) or type(err).__name__
+        _note(settings, f"Cannot check for a newer release ({url}): {why}")
+        return last
+    if tag is None or ours is None or tag <= ours:
+        return None
+    return {"release": index["release"], "fastball": index["fastball"],
+            "fastball_changed": index["fastball"] != info["fastball"],
+            "page": PAGE.format(repo=info["repo"], tag=index["release"])}
 
 
 # --- what is installed -----------------------------------------------------------------------

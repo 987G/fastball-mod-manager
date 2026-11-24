@@ -95,7 +95,8 @@ class ServerTests(unittest.TestCase):
                                  "has_runtime": True, "branch": "br/alpha",
                                  "has_server": True, "own_profile": True,
                                  "has_patches": False, "art_url": "/art/ART_A",
-                                 "card_url": None, "card_text": None, "features": None})
+                                 "card_url": None, "card_text": None, "features": None,
+                                 "version": None})
         self.assertIsNone(beta["installed"])  # no file part: nothing to install
         self.assertFalse(beta["has_server"])
         self.assertFalse(beta["has_files"])
@@ -844,11 +845,50 @@ class ServerTests(unittest.TestCase):
             "card_text": {"tagline": "Pitch it", "highlights": [["Grip", "new"]], "note": ""},
             "features": [{"title": "Pitches",
                           "blocks": [{"bullet": "**18Ks** a game", "sub": []}]}],
-            "installed": True, "installed_release": "2026.11.1", "update": True, "on": True})
+            "installed": True, "installed_release": "2026.11.1", "update": True, "on": True,
+            "own_version": None, "local_version": None})
         self.assertEqual((delta["installed"], delta["update"], delta["installed_release"]),
                          (False, False, None))
         self.assertEqual((delta["card_text"], delta["features"], delta["art_url"], delta["size"]),
                          (None, None, None, 900))
+
+    def _write_index(self, index):
+        (Path(self.app.settings.release_source) / "index.json").write_text(
+            json.dumps(index), encoding="utf-8")
+
+    def test_state_carries_each_mod_version(self):
+        manifest = dict(ALPHA, version="5")
+        (self.settings.mods / "alpha" / "mod.json").write_text(json.dumps(manifest), encoding="utf-8")
+        code, body, _ = self.request("/api/state")
+        self.assertEqual(code, 200, body)
+        self.assertEqual({m["id"]: m["version"] for m in body["mods"]}, {"alpha": "5", "beta": None})
+
+    def test_catalog_tells_a_mod_version_from_the_release_tag(self):
+        """index.json's version is the mod's own (package.py) or, for a mod without one and for
+        older releases, the release tag: only the first is the mod's version."""
+        index = self._release()
+        index["mods"][0]["version"] = "6"   # alpha: its own version; delta keeps the release tag
+        self._write_index(index)
+        manifest = dict(ALPHA, version="5")
+        (self.settings.mods / "alpha" / "mod.json").write_text(json.dumps(manifest), encoding="utf-8")
+        self._downloaded({"alpha": "2026.11.1"})
+        code, body, _ = self.request("/api/catalog")
+        self.assertEqual(code, 200, body)
+        alpha, delta = body["mods"]
+        self.assertEqual((alpha["version"], alpha["own_version"], alpha["local_version"], alpha["update"]),
+                         ("6", "6", "5", True))
+        self.assertEqual((delta["version"], delta["own_version"], delta["local_version"]),
+                         ("2026.11.2", None, None))
+
+    def test_catalog_drops_a_version_of_the_wrong_shape(self):
+        index = self._release()
+        for bad in (6, "x" * 17, "", ["6"]):
+            with self.subTest(bad=bad):
+                index["mods"][0]["version"] = bad
+                self._write_index(index)
+                code, body, _ = self.request("/api/catalog")
+                self.assertEqual(code, 200, body)
+                self.assertEqual((body["mods"][0]["version"], body["mods"][0]["own_version"]), ("", None))
 
     def test_catalog_drops_card_text_and_features_of_the_wrong_shape(self):
         index = self._release()
@@ -1043,6 +1083,171 @@ class ServerTests(unittest.TestCase):
         code, body, _ = self.request("/api/state")
         self.assertEqual((code, body["mods"], body.get("error")), (200, [], None))
 
+    # --- a newer release on GitHub ----------------------------------------------------------
+    INFO = {"repo": "owner/name", "tag": "2026.11.2", "fastball": "0.2.0+74a6525"}
+    NEWER = {"release": "2026.11.3", "fastball": "0.2.0+74a6525", "fastball_changed": False,
+             "page": "https://github.com/owner/name/releases/tag/2026.11.3"}
+
+    def check(self, answer):
+        """App.check_newer with release.json present and newer_release answering `answer`: a dict
+        or None (a good check), or "fail" (it hands back the `last` it was given)."""
+        def newer_release(settings, info, last):
+            self.calls.append(last)
+            return last if answer == "fail" else answer
+        with mock.patch("app.releases.release_info", return_value=self.INFO), \
+                mock.patch("app.releases.newer_release", side_effect=newer_release), \
+                mock.patch("app.server.time.monotonic", side_effect=lambda: self.now):
+            self.app.check_newer()
+
+    def newer_shown(self):
+        return self.request("/api/state")[1]["newer_release"]
+
+    def test_state_carries_newer_release(self):
+        self.calls, self.now = [], 1000.0
+        self.assertEqual(self.newer_shown(), None)
+        self.check(self.NEWER)
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.newer_shown(), self.NEWER)
+
+    def test_a_dev_copy_never_checks_and_clears_the_line(self):
+        recomp = Path(self._tmp.name) / "fastball"
+        (recomp / ".git").mkdir(parents=True)
+        for label, info, settings in (("no release.json", None, {}),
+                                      ("a Fastball source clone", self.INFO, {"recomp": recomp}),
+                                      ("a Release source of its own", self.INFO,
+                                       {"release_source": r"C:\releases\test"})):
+            with self.subTest(label):
+                self.app._newer = dict(self.NEWER)
+                self.app.settings = dataclasses.replace(self.settings, **settings)
+                with mock.patch("app.releases.release_info", return_value=info), \
+                        mock.patch("app.releases.newer_release") as newer:
+                    self.app.check_newer()
+                    self.app.check_newer()
+                newer.assert_not_called()
+                self.assertIsNone(self.newer_shown())
+
+    def test_the_check_runs_at_most_once_an_hour(self):
+        self.calls, self.now = [], 1000.0
+        self.check(self.NEWER)
+        self.now += 3599
+        self.check(self.NEWER)
+        self.assertEqual(len(self.calls), 1)
+        self.now += 2
+        self.check(None)   # a good check that finds nothing newer clears the line
+        self.assertEqual(len(self.calls), 2)
+        self.assertIsNone(self.newer_shown())
+
+    def test_a_failed_check_keeps_the_line_and_retries_after_five_minutes(self):
+        self.calls, self.now = [], 1000.0
+        self.check(self.NEWER)
+        self.now += 3601
+        self.check("fail")   # offline: it is handed the last good answer, so the line stays
+        self.assertEqual(len(self.calls), 2)
+        self.assertEqual(self.newer_shown(), self.NEWER)
+        self.now += 299
+        self.check("fail")
+        self.assertEqual(len(self.calls), 2)
+        self.now += 2
+        self.check(None)
+        self.assertEqual(len(self.calls), 3)
+        self.assertIsNone(self.newer_shown())
+        self.now += 301   # after a good check the hour holds again
+        self.check(self.NEWER)
+        self.assertEqual(len(self.calls), 3)
+
+    def test_a_failed_startup_check_lets_get_mods_retry_soon(self):
+        self.calls, self.now = [], 1000.0
+        self.check("fail")
+        self.now += 301
+        self.check(self.NEWER)
+        self.assertEqual(len(self.calls), 2)
+        self.assertEqual(self.newer_shown(), self.NEWER)
+
+    def test_changing_release_source_or_recomp_clears_the_line(self):
+        recomp = Path(self._tmp.name) / "fastball"
+        (recomp / ".git").mkdir(parents=True)
+        for key, value in (("release_source", r"C:\releases\test"), ("recomp", str(recomp))):
+            with self.subTest(key):
+                self.app._newer, self.app._newer_at = dict(self.NEWER), 1000.0
+                code, body, _ = self.request("/api/settings", {key: value})
+                self.assertEqual(code, 200, body)
+                self.assertIsNone(self.newer_shown())
+                self.assertIsNone(self.app._newer_at)   # switching back checks again at once
+        self.app._newer = dict(self.NEWER)
+        code, body, _ = self.request("/api/settings", {"packages_port": 10011})
+        self.assertEqual(code, 200, body)
+        self.assertEqual(self.app._newer, self.NEWER)   # other settings leave it alone
+
+    def paused_check(self, change: dict, answer: str) -> None:
+        """App.check_newer paused mid-fetch while Settings get `change`, then let finish with
+        `answer` ("found": NEWER, "failed": the `last` it was given)."""
+        self.app.settings = self.settings   # the default source
+        self.app._newer, self.app._newer_at = None, None
+        self.app._newer_wait = server.NEWER_EVERY
+        fetching, go = threading.Event(), threading.Event()
+
+        def newer_release(settings, info, last):
+            fetching.set()
+            go.wait(10)
+            return self.NEWER if answer == "found" else last
+
+        with mock.patch("app.releases.release_info", return_value=self.INFO), \
+                mock.patch("app.releases.newer_release", side_effect=newer_release):
+            check = threading.Thread(target=self.app.check_newer)
+            check.start()
+            self.assertTrue(fetching.wait(10))   # paused mid-fetch
+            code, body, _ = self.request("/api/settings", change)
+            self.assertEqual(code, 200, body)
+            go.set()
+            check.join(10)
+        self.assertFalse(check.is_alive())
+
+    def test_a_check_that_ends_after_a_settings_change_is_dropped(self):
+        """A check fetched under the old settings must not bring the line back after Settings
+        switched to a Release source of its own while it was under way."""
+        for answer in ("found", "failed"):
+            with self.subTest(answer):
+                self.paused_check({"release_source": r"C:\releases\test"}, answer)
+                self.assertIsNone(self.app._newer)
+                self.assertIsNone(self.app._newer_at)          # the change's fresh start stands
+                self.assertEqual(self.app._newer_wait, server.NEWER_EVERY)
+
+    def test_a_check_survives_a_settings_change_that_does_not_matter_to_it(self):
+        """Changing another setting (a port, the game folder) mid-fetch keeps the check's answer,
+        so the line is not missing for an hour after, say, a first-run Settings save."""
+        for change in ({"packages_port": 10011}, {"game": str(Path(self._tmp.name) / "Game 2")}):
+            with self.subTest(next(iter(change))):
+                self.paused_check(change, "found")
+                self.assertEqual(self.app._newer, self.NEWER)
+                self.assertEqual(self.newer_shown(), self.NEWER)
+                self.paused_check(change, "failed")
+                self.assertEqual(self.app._newer_wait, server.NEWER_RETRY)   # retried soon, as offline
+
+    def test_the_catalog_starts_a_check(self):
+        self._release()
+        with mock.patch.object(self.app, "check_newer_in_background") as check:
+            code, _, _ = self.request("/api/catalog")
+        self.assertEqual(code, 200)
+        check.assert_called_once_with()
+
+    def test_open_download_page_opens_the_newer_release(self):
+        code, body, _ = self.request("/api/open", {"what": "release-page"})
+        self.assertEqual(code, 404, body)
+        self.app._newer = dict(self.NEWER)
+        with mock.patch("os.startfile", create=True) as startfile:
+            code, body, _ = self.request("/api/open", {"what": "release-page"})
+        self.assertEqual(code, 200, body)
+        startfile.assert_called_once_with(self.NEWER["page"])
+
+    def test_open_page_refuses_anything_but_github(self):
+        from app import actions
+        for url in ("https://example.com/releases/tag/x", "http://github.com/o/n", r"C:\Windows",
+                    "https://github.com.evil.example/o/n", "file:///C:/x", None):
+            with self.subTest(url), mock.patch("os.startfile", create=True) as startfile:
+                with self.assertRaises(actions.ActionError):
+                    actions.open_page(url)
+                startfile.assert_not_called()
+
 
 class StartupTests(unittest.TestCase):
     """python -m app: an unfinished mod download is put back before the page is served."""
@@ -1072,13 +1277,19 @@ class StartupTests(unittest.TestCase):
                     mock.patch.object(app_main, "wait_for_exit", side_effect=wait), \
                     mock.patch.object(app_main.releases, "recover",
                                       side_effect=lambda s, log=None: (events.append("recover"),
-                                                                       recover())):
+                                                                       recover())), \
+                    mock.patch.object(app_main.server.App, "check_newer_in_background",
+                                      lambda app: events.append("check newer")):
                 app_main.main()
         return events, apps[0]
 
     def test_recover_runs_once_after_binding_and_before_serving(self):
         events, _ = self._main(lambda: None)
-        self.assertEqual(events, ["bound", "recover", "serve"])
+        self.assertEqual([e for e in events if e != "check newer"], ["bound", "recover", "serve"])
+
+    def test_startup_starts_one_newer_release_check(self):
+        events, _ = self._main(lambda: None)
+        self.assertEqual(events.count("check newer"), 1)
 
     def test_a_failed_recover_shows_in_the_status_line(self):
         from app import releases
@@ -1087,7 +1298,7 @@ class StartupTests(unittest.TestCase):
             raise releases.ReleaseError("Putting back the mods failed; close the folder.")
 
         events, app = self._main(fail)
-        self.assertEqual(events, ["bound", "recover", "serve"])
+        self.assertEqual([e for e in events if e != "check newer"], ["bound", "recover", "serve"])
         self.assertEqual((app.session.status, app.session.message),
                          ("error", "Putting back the mods failed; close the folder."))
 

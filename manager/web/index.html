@@ -40,6 +40,12 @@
             <button class="btn ghost small" type="button" data-open="mods" data-key="open:mods">OPEN MODS FOLDER</button>
           </div>
         </div>
+        <!-- a newer release on GitHub (state.newer_release): one line above the list -->
+        <div class="newer" id="newer" hidden>
+          <p class="pick-note newer-text" id="newer-text"></p>
+          <button class="btn ghost small" type="button" id="newer-open" data-key="newer-open"
+            title="Opens the release's page in your browser, where you download it.">OPEN DOWNLOAD PAGE</button>
+        </div>
         <div class="state-error" id="mods-error" hidden></div>
         <div class="mod-list" id="mod-list" role="listbox" aria-labelledby="mods-title"></div>
         <!-- the picker (player mode: first run, and GET MODS): download the ticked release mods -->

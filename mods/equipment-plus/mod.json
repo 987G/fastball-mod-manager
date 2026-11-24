@@ -2,6 +2,7 @@
  "card": "release/card.json",
  "features": "release/features.md",
  "name": "Equipment+",
+ "version": "1",
  "order": 60,
  "art": "BOX_EQUIPMENT_DIAMOND",
  "description": "Fixes to how the game draws equipment. Pitcher sleeve: the pitcher on the mound wears the compression sleeve he has on, with its design, instead of the plain sleeve the game puts on every pitcher, and the Equipment Style preview shows the design too.",

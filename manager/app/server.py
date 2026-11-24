@@ -40,6 +40,8 @@ BUSY_WORDS = {"applying": "mod files are being installed", "building": "the game
 MAX_BODY = 64 * 1024
 DRAIN_TIMEOUT = 5.0  # seconds to wait for a refused request's body
 GAMES_TTL = 2.0
+NEWER_EVERY = 3600.0  # seconds: the check for a newer release on GitHub runs at most this often
+NEWER_RETRY = 300.0  # seconds: how soon it may run again after a check that failed (offline)
 
 
 class BadRequest(Exception):
@@ -90,18 +92,27 @@ def _and(names: list[str]) -> str:
     return ", ".join(names[:-1]) + " and " + names[-1] if len(names) > 1 else "".join(names)
 
 
-def catalog_mod(entry: dict, records: dict, here: set, on: set, release: str) -> dict:
+def catalog_mod(entry: dict, records: dict, here: dict, on: set, release: str) -> dict:
     """One mod of a release's index as the picker shows it. The index comes from the network:
-    only checked text, sizes and shapes reach the page (it draws them as text, never HTML)."""
+    only checked text, sizes and shapes reach the page (it draws them as text, never HTML).
+    `here` maps the mods on this PC to their own versions (mod.json, or None). The entry's
+    version is the mod's own (tools/package.py) or, for a mod without one and in older releases,
+    the release tag: own_version is it only in the first case; local_version is the installed
+    mod's own version."""
     mod_id = entry["id"]
     art, parts, sections = entry.get("art"), entry.get("parts"), entry.get("features")
     try:
         card = mods.clean_card_text(entry.get("card"))
     except ValueError:
         card = None
+    try:
+        version = mods.clean_version(entry.get("version"))
+    except ValueError:
+        version = ""
     installed = mod_id in records and mod_id in here
     return {"id": mod_id, "name": entry["name"],
-            "version": entry["version"] if isinstance(entry.get("version"), str) else "",
+            "version": version, "own_version": version if version not in ("", release) else None,
+            "local_version": here[mod_id] if installed else None,
             "description": (entry["description"] if isinstance(entry.get("description"), str)
                             else ""),
             "art_url": f"/art/{art}" if isinstance(art, str) and ART_NAME.match(art) else None,
@@ -140,6 +151,9 @@ class App:
         self._refreshes = 0  # installed-status refreshes started
         self._shown = 0  # the refresh whose answers are cached
         self._games: tuple[float, list] = (0.0, [])
+        self._newer: dict | None = None  # the last check's newer release (/api/state)
+        self._newer_at: float | None = None  # when that check started (time.monotonic)
+        self._newer_wait = NEWER_EVERY  # seconds before the next check: NEWER_RETRY after a failure
         self.httpd: ThreadingHTTPServer | None = None  # set by make_server
         self.quit = threading.Event()  # set by POST /api/quit; main() then exits
 
@@ -216,6 +230,50 @@ class App:
     def refresh_in_background(self) -> None:
         threading.Thread(target=self.refresh_installed, daemon=True).start()
 
+    # a newer release on GitHub ------------------------------------------------
+    def check_newer(self) -> None:
+        """Ask GitHub whether a newer release is out (releases.newer_release) and keep the answer
+        for /api/state. After a good check the next one waits NEWER_EVERY seconds; after a failed
+        one (offline) only NEWER_RETRY, and the last good answer stays. A dev copy never asks and
+        shows nothing: no release.json beside the manager, a Fastball source clone in Settings,
+        or a Release source of its own."""
+        settings = self.settings
+        try:
+            info = releases.release_info()
+        except releases.ReleaseError:
+            info = None
+        if info is None or config.mode(settings) == "dev" or settings.release_source:
+            with self._lock:
+                self._newer = None
+            return
+        source = self._newer_source(settings)
+        with self._lock:
+            now = time.monotonic()
+            if self._newer_source(self.settings) != source or (
+                    self._newer_at is not None and now - self._newer_at < self._newer_wait):
+                return
+            self._newer_at, self._newer_wait = now, NEWER_EVERY  # stamped first: one check at a time
+        failed = object()  # newer_release answers `last` when the check fails
+        newer = releases.newer_release(settings, info, last=failed)
+        with self._lock:
+            if self._newer_source(self.settings) != source:
+                # Release source or the Fastball clone changed while it ran: its answer is stale,
+                # and update_settings already cleared the line and the stamp
+                return
+            if newer is failed:
+                self._newer_wait = NEWER_RETRY
+            else:
+                self._newer = newer
+
+    @staticmethod
+    def _newer_source(settings: Settings) -> tuple:
+        """What a newer-release answer depends on in Settings: a change of any other setting (a
+        port, the game folder) leaves a check under way valid."""
+        return settings.release_source, settings.recomp, config.mode(settings)
+
+    def check_newer_in_background(self) -> None:
+        threading.Thread(target=self.check_newer, daemon=True).start()
+
     def _games_running(self) -> list:
         stamp, games = self._games
         if time.monotonic() - stamp > GAMES_TTL:
@@ -230,7 +288,8 @@ class App:
         session = self.session.snapshot()
         out = {"session": {"status": session["status"], "message": session["message"],
                            "last_line": session["log"][-1] if session["log"] else None},
-               "games_running": self._games_running(), "mode": config.mode(self.settings)}
+               "games_running": self._games_running(), "mode": config.mode(self.settings),
+               "newer_release": self._newer}
         block, beside = launcher.play_gate(out["games_running"], self.settings)
         out["play_block"], out["play_note"] = block, launcher.play_note(beside)
         try:
@@ -254,7 +313,7 @@ class App:
                         "has_server": bool(m.server), "own_profile": m.profile == "own",
                         "has_patches": bool(m.patches), "art_url": art_url(m),
                         "card_url": f"/modcard/{m.id}" if m.card else None,
-                        "card_text": m.card_text, "features": m.features}
+                        "card_text": m.card_text, "features": m.features, "version": m.version}
                        for m in all_mods]
         out["selected"] = selected
         try:
@@ -311,7 +370,9 @@ class App:
 
     # release mods: the picker's list, Get mods, Remove ------------------------------
     def catalog(self) -> tuple[int, dict]:
-        """The mods of the release this manager downloads from, and which of them are here."""
+        """The mods of the release this manager downloads from, and which of them are here.
+        Opening GET MODS also looks for a newer release (at most once an hour)."""
+        self.check_newer_in_background()
         settings = self.settings
         try:
             index = releases.fetch_index(settings, releases.release_info())
@@ -325,7 +386,7 @@ class App:
             all_mods = mods.load_all(settings)
         except (mods.ManifestError, OSError):
             all_mods = []
-        here, on = {m.id for m in all_mods}, set(self._selected_or_none(all_mods))
+        here, on = {m.id: m.version for m in all_mods}, set(self._selected_or_none(all_mods))
         release = index["release"]
         return HTTPStatus.OK, {"release": release, "mods": [
             catalog_mod(m, records, here, on, release) for m in index["mods"]]}
@@ -526,6 +587,12 @@ class App:
 
     def open(self, body) -> dict:
         what = body.get("what") if isinstance(body, dict) else None
+        if what == "release-page":   # the newer release's page, in the default browser
+            page = (self._newer or {}).get("page")
+            if not page:
+                raise actions.ActionError("There is no newer release to open.", 404)
+            actions.open_page(page)
+            return {"opened": page}
         all_mods = mods.load_all(self.settings)
         path = actions.folder_for(what, self.settings, {m.id: m.folder for m in all_mods},
                                   self._current_profile(all_mods))
@@ -539,9 +606,13 @@ class App:
             busy = self._busy("change settings")
             if busy:
                 return busy
-            new = validate_settings(body, self.settings)
+            old = self.settings
+            new = validate_settings(body, old)
             config.save(new, self.settings_path)
             self.settings = config.load(self.settings_path)
+            if self._newer_source(old) != self._newer_source(self.settings):
+                # the newer-release line was found for the old ones: drop it, and check afresh
+                self._newer, self._newer_at = None, None
         return HTTPStatus.OK, settings_json(self.settings)
 
 

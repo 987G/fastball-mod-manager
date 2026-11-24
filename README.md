@@ -6,7 +6,7 @@ download them and press Play; the manager puts each mod in place and takes it ou
 ## What you need
 
 - Windows 10 or 11 (64-bit).
-- Fastball 0.2.0, with the game installed by it on this PC.
+- Fastball 0.2.1, with the game installed by it on this PC.
 - Fastball's setup folder (the folder with `Fastball.exe`), kept where it is: the manager builds the game with your
   mods using the tools in it.
 
@@ -39,11 +39,15 @@ the game with them, which takes a few minutes; later Plays use that build until 
 
 - On HOME, each mod has an ON / OFF switch, and its card has **TURN ON** / **TURN OFF**. A mod you switch off stays
   downloaded, and its files come out of the game at your next Play.
-- **GET MODS** shows this release's list again: tick more mods and press **DOWNLOAD SELECTED**.
+- **GET MODS** shows this release's list again: tick more mods and press **DOWNLOAD SELECTED**. Each mod shows its
+  version, and a mod you have shows, for example, **v5 → v6** when this release updates it.
 - To delete a mod, switch it off, press **GET MODS**, then press **REMOVE** beside it. The manager takes its files out
   of the game and deletes it from your mods folder.
 
 ## Updating
+
+The manager checks GitHub for a newer release when it starts and when you open **GET MODS**, and shows a line on
+HOME when there is one; **OPEN DOWNLOAD PAGE** beside it opens that release's page in your browser.
 
 Close the manager (**SETTINGS**, **QUIT MANAGER**). Download the new `ShowModManager-<version>.zip` from the Releases
 page and unzip it over the old manager folder, replacing the files there; your settings and mods stay. Start the

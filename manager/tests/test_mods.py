@@ -110,6 +110,33 @@ class LoadTests(unittest.TestCase):
         (self.settings.mods / "stray.json").write_text("{}", encoding="utf-8")
         self.assertEqual([m.id for m in mods.load_all(self.settings)], ["real"])
 
+    def test_version_is_kept_as_short_text(self):
+        _write(self.settings.mods / "six", '{"name": "Six", "version": " 6 "}')
+        _write(self.settings.mods / "dotted", '{"name": "Dotted", "version": "1.2"}')
+        _write(self.settings.mods / "longest", json.dumps({"name": "Longest", "version": "x" * 16}))
+        _write(self.settings.mods / "none", '{"name": "None"}')
+        by_id = {m.id: m for m in mods.load_all(self.settings)}
+        self.assertEqual({k: m.version for k, m in by_id.items()},
+                         {"six": "6", "dotted": "1.2", "longest": "x" * 16, "none": None})
+
+    def test_bad_version_reports_mod(self):
+        for label, value in (("a number", 6), ("a list", ["6"]), ("too long", "x" * 17),
+                             ("empty", ""), ("blank", "   "), ("null", None)):
+            with self.subTest(label):
+                shutil.rmtree(self.settings.mods)
+                _write(self.settings.mods / "odd-version", json.dumps({"name": "Odd", "version": value}))
+                with self.assertRaises(mods.ManifestError) as cm:
+                    mods.load_all(self.settings)
+                self.assertIn("odd-version", str(cm.exception))
+                self.assertIn("version", str(cm.exception))
+
+    def test_clean_version(self):
+        self.assertEqual(mods.clean_version("6"), "6")
+        self.assertEqual(mods.clean_version(" 1.2 "), "1.2")
+        for bad in (6, None, "", " ", "x" * 17, ["6"]):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                mods.clean_version(bad)
+
     def test_bad_manifest_reports_mod(self):
         _write(self.settings.mods / "broken-mod", '{"name": "Broken",')
         with self.assertRaises(mods.ManifestError) as cm:

@@ -40,10 +40,12 @@ import zipfile
 from pathlib import Path
 
 # Fastball releases this tool builds for: the commit and the sha256 of the stock runtime library its setup ships
-# (runtime/libmlbrt.a of MLBTS-Setup 0.2.0, the base the player's toolkit compares its setup with).
+# (runtime/libmlbrt.a of that release's setup, the base the player's toolkit compares its setup with).
 PINS = {
     "0.2.0+74a6525": {"commit": "74a6525bd0036335f01c1906fd11146d70a1cf12",
                       "libmlbrt.a": "e66af9ce7b618c152eecc6497178dfa1deccf238bb8f3908d9c0f7f12d938e4e"},
+    "0.2.1+74d3f93": {"commit": "74d3f93e85533fa7952847088bbfd5910820fde7",
+                      "libmlbrt.a": "f4f1dbdbe1db2237ceda397eec3220e2ba98e776a2cfb9af04b5d217a5875453"},
 }
 # ninja: the url and sha256 Fastball's tools/make_release.py pins
 NINJA = ("https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
