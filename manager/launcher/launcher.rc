@@ -1,0 +1,27 @@
+#include <winver.h>
+
+1 ICON "icon.ico"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "Show Mod Manager"
+            VALUE "ProductName", "Show Mod Manager"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "ProductVersion", "1.0.0.0"
+            VALUE "OriginalFilename", "Show Mod Manager.exe"
+            VALUE "InternalName", "Show Mod Manager"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

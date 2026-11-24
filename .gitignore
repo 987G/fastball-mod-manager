@@ -1,0 +1,4 @@
+# compiled Python holds the absolute path of the folder it was built in: never committed
+__pycache__/
+*.pyc
+*.pyo

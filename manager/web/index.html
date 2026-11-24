@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mod Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"><canvas class="smoke"></canvas></div>
+
+<header class="top">
+  <div class="badge">
+    <div class="emblem"><span>26</span></div>
+    <div class="who">
+      <h1 class="who-name">MOD MANAGER</h1>
+      <div class="who-sub" id="who-sub">THE SHOW 26 · PC</div>
+    </div>
+  </div>
+  <nav class="pills" id="nav">
+    <a class="pill" href="#home" data-screen="home">HOME</a>
+    <a class="pill" href="#builds" data-screen="builds">BUILDS &amp; LOGS</a>
+    <a class="pill" href="#settings" data-screen="settings">SETTINGS</a>
+    <button class="pill refresh" id="refresh" type="button" title="Reload the page, as F5 does" aria-label="Refresh">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13.5A7.5 7.5 0 1 1 17.3 6.7"/><path d="M18.4 2.8v4.6h-4.6"/></svg>
+    </button>
+  </nav>
+</header>
+
+<main id="main">
+  <!-- HOME: the mod list (left) and the focused mod's card (right) -->
+  <section class="screen" id="screen-home">
+    <div class="home-grid">
+      <section class="panel mod-panel" aria-labelledby="mods-title">
+        <div class="panel-head">
+          <h2 class="panel-h" id="mods-title">MODS</h2>
+          <span class="panel-count" id="mods-count"></span>
+          <div class="panel-actions">
+            <button class="btn ghost small" type="button" id="get-mods" data-key="get-mods" hidden>GET MODS</button>
+            <button class="btn ghost small" type="button" data-open="mods" data-key="open:mods">OPEN MODS FOLDER</button>
+          </div>
+        </div>
+        <div class="state-error" id="mods-error" hidden></div>
+        <div class="mod-list" id="mod-list" role="listbox" aria-labelledby="mods-title"></div>
+        <!-- the picker (player mode: first run, and GET MODS): download the ticked release mods -->
+        <div class="pick-foot" id="pick-foot" hidden>
+          <p class="pick-note" id="pick-note"></p>
+          <button class="btn mint" type="button" id="download" data-key="download">DOWNLOAD SELECTED</button>
+        </div>
+        <div class="panel-hint" id="list-hint">↑ ↓ pick a mod · <b>Space</b> / <b>Enter</b> switch it on or off</div>
+        <div class="panel-hint" id="pick-hint" hidden>↑ ↓ pick a mod · <b>Space</b> / <b>Enter</b> select or unselect it</div>
+      </section>
+      <article class="card detail" id="detail" aria-live="polite"></article>
+    </div>
+  </section>
+
+  <!-- BUILDS & LOGS -->
+  <section class="screen" id="screen-builds" hidden>
+    <div class="screen-head">
+      <h2 class="title">BUILDS &amp; LOGS</h2>
+    </div>
+    <div class="split">
+      <div class="card build-card">
+        <div class="card-head">
+          <h3 class="card-title">COMBINED EXE</h3>
+          <span class="chip" id="build-badge">…</span>
+        </div>
+        <div id="build-body"></div>
+        <div class="status small" id="build-status"></div>
+        <div class="row-actions">
+          <button class="btn mint" type="button" id="rebuild">REBUILD</button>
+          <button class="btn ghost" type="button" data-open="build">OPEN BUILD FOLDER</button>
+        </div>
+      </div>
+      <div class="card log-card">
+        <div class="tabs" id="log-tabs">
+          <button class="pill small" type="button" data-log="game">GAME</button>
+          <button class="pill small" type="button" data-log="server">SERVER</button>
+          <button class="pill small" type="button" data-log="build">BUILD</button>
+          <button class="pill small" type="button" data-log="manager">MANAGER</button>
+          <button class="btn ghost small" type="button" data-open="logs">OPEN LOGS FOLDER</button>
+        </div>
+        <div class="log-path" id="log-path"></div>
+        <pre class="log" id="log" tabindex="0"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="screen-settings" hidden>
+    <div class="settings-layout">
+      <form class="settings-form" id="settings-form" autocomplete="off">
+        <div class="screen-head"><h2 class="title">SETTINGS</h2></div>
+        <div class="fields" id="fields"></div>
+        <div class="form-foot">
+          <div class="form-msg" id="settings-msg"></div>
+          <button class="btn mint" type="submit" id="save">SAVE</button>
+        </div>
+      </form>
+      <aside class="side-panel">
+        <h3 class="panel-title">PROFILE<br> IN USE</h3>
+        <div class="panel-path" id="profile-path">…</div>
+        <p class="panel-note">Your saves for the current mod selection. Mods with their own
+          profile play on a copy, so the normal profile stays untouched.</p>
+        <button class="btn mint wide" type="button" id="backup">BACK UP PROFILE</button>
+        <button class="btn navy wide" type="button" data-open="profile">OPEN PROFILE FOLDER</button>
+        <div class="form-msg" id="backup-msg"></div>
+        <div class="panel-spacer"></div>
+        <button class="btn navy wide danger" type="button" id="quit">QUIT MANAGER</button>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<!-- Always on screen: what the manager is doing, and Play -->
+<footer class="actionbar">
+  <div class="ab-status">
+    <div class="status" id="status"><span class="status-text">Connecting …</span></div>
+    <div class="progress" id="progress" hidden><div class="progress-fill"></div></div>
+    <div class="reason" id="play-reason"></div>
+  </div>
+  <div class="ab-play">
+    <div class="profile-tag" id="hero-profile" hidden></div>
+    <button class="play" id="play" type="button" data-key="play" disabled>
+      <svg viewBox="0 0 24 24" class="play-icon" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>
+      <span class="play-label" id="play-label">PLAY</span>
+    </button>
+  </div>
+</footer>
+
+<div class="toast" id="toast" hidden></div>
+<div class="gone" id="gone" hidden>
+  <div class="gone-box">
+    <h2 class="title">MANAGER CLOSED</h2>
+    <p>You can close this window.</p>
+  </div>
+</div>
+<script src="app.js"></script>
+<script src="smoke.js"></script>
+</body>
+</html>

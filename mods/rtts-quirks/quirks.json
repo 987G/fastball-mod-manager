@@ -1,0 +1,502 @@
+{
+  "_about": "Rules for RTTS quirk offers (DESIGN.md). Read by tools/offer_sim.py now and by the port module later. bit = the player's quirk bit (record +0x28); key = row in NSW/UI/QUIRKS.NSW_EN.",
+  "quirks": [
+    {
+      "bit": 0,
+      "key": 0,
+      "name": "Homebody",
+      "role": "both",
+      "family": "General",
+      "card_text": "Performs better at home, slightly worse on the road.",
+      "detail": "You'll hit and pitch a bit better in home games, and a bit worse on the road by the same amount. Over a full season it about evens out.",
+      "short": "better at home, worse on the road"
+    },
+    {
+      "bit": 1,
+      "key": 1,
+      "name": "Road Warrior",
+      "role": "both",
+      "family": "General",
+      "card_text": "Performs better on the road, slightly worse at home.",
+      "detail": "You'll hit and pitch a bit better in road games, and a bit worse at home by the same amount. Over a full season it about evens out.",
+      "short": "better on the road, worse at home"
+    },
+    {
+      "bit": 2,
+      "key": 2,
+      "name": "First-Pitch Hitter",
+      "role": "hitter",
+      "family": "Contact",
+      "card_text": "Much better on 0-0 pitches, slightly worse on other counts.",
+      "detail": "Big boost when you swing at the first pitch of an at-bat, a small penalty on every other count.",
+      "short": "much better on 0-0, a bit worse after"
+    },
+    {
+      "bit": 3,
+      "key": 3,
+      "name": "Dead Red",
+      "role": "hitter",
+      "family": "Power",
+      "card_text": "Better against fastballs, worse against breaking balls.",
+      "detail": "A boost against fastballs, but twice as big a penalty against breaking balls. Can hurt more than it helps against breaking-ball pitchers.",
+      "short": "better vs fastballs, worse vs breaking balls"
+    },
+    {
+      "bit": 4,
+      "key": 4,
+      "name": "Breaking Ball Hitter",
+      "role": "hitter",
+      "family": "Power",
+      "card_text": "Much better against breaking balls, slightly worse against fastballs.",
+      "detail": "A big boost against breaking balls and a smaller penalty against fastballs.",
+      "short": "better vs breaking balls, worse vs heat"
+    },
+    {
+      "bit": 5,
+      "key": 5,
+      "name": "Unfazed",
+      "role": "hitter",
+      "family": "Contact",
+      "card_text": "Much better with two strikes, slightly worse on other counts.",
+      "detail": "Big boost once you have two strikes, a small penalty before that.",
+      "short": "much better with 2 strikes, a bit worse before"
+    },
+    {
+      "bit": 6,
+      "key": 6,
+      "name": "Fighter",
+      "role": "hitter",
+      "family": "Power",
+      "card_text": "Much better from the 9th inning on, very slightly worse before.",
+      "detail": "Big boost from the 9th inning on (extra innings too), a very small penalty in innings 1-8.",
+      "short": "much better from the 9th on, a bit worse before"
+    },
+    {
+      "bit": 7,
+      "key": 15,
+      "name": "Pickoff Artist",
+      "role": "pitcher",
+      "family": "Control",
+      "card_text": "Pickoff throws are much more likely to work. No downside.",
+      "detail": "Your pickoff attempts are about twice as likely to succeed. No penalty anywhere.",
+      "short": "pickoffs work far more often, no downside"
+    },
+    {
+      "bit": 8,
+      "key": 7,
+      "name": "Rally Monkey",
+      "role": "hitter",
+      "family": "General",
+      "card_text": "Better when your team trails, slightly worse when tied or ahead.",
+      "detail": "A boost when your team is behind, a small penalty when the game is tied or you're ahead.",
+      "short": "better when trailing, worse tied or ahead"
+    },
+    {
+      "bit": 9,
+      "key": 8,
+      "name": "Stopper",
+      "role": "pitcher",
+      "family": "Control",
+      "card_text": "Pitches better when your team trails, slightly worse when tied or ahead.",
+      "detail": "A boost on the mound while your team is behind, a small penalty when the game is tied or you're ahead.",
+      "short": "pitches better when trailing, worse tied or ahead"
+    },
+    {
+      "bit": 10,
+      "key": 16,
+      "name": "Bad Ball Hitter",
+      "role": "hitter",
+      "family": "Contact",
+      "card_text": "Better on pitches outside the zone, slightly worse on strikes.",
+      "detail": "A boost when you swing at pitches outside the strike zone, a small penalty on pitches in the zone.",
+      "short": "better on balls, worse on strikes"
+    },
+    {
+      "bit": 11,
+      "key": 9,
+      "name": "Situational Hitter",
+      "role": "hitter",
+      "family": "Contact",
+      "card_text": "Much better with a runner on 3rd and under 2 outs, slightly worse otherwise.",
+      "detail": "Big boost with a runner on third and fewer than two outs, a small penalty in every other spot.",
+      "short": "much better with a man on 3rd, under 2 outs"
+    },
+    {
+      "bit": 12,
+      "key": 10,
+      "name": "Pinch Hitter",
+      "role": "hitter",
+      "family": "General",
+      "card_text": "Much better as a pinch hitter, slightly worse in every other at-bat.",
+      "detail": "Big boost when you come off the bench to pinch hit, but a small penalty in every regular at-bat. Usually a net loss for an everyday player.",
+      "short": "much better pinch hitting, a bit worse otherwise"
+    },
+    {
+      "bit": 13,
+      "key": 11,
+      "name": "Day Player",
+      "role": "both",
+      "family": "General",
+      "card_text": "Better in day games, equally worse at night.",
+      "detail": "A boost in day games and the same-sized penalty in night games. Most games are at night, so this usually costs more than it gives.",
+      "short": "better in day games, worse at night"
+    },
+    {
+      "bit": 14,
+      "key": 12,
+      "name": "Night Player",
+      "role": "both",
+      "family": "General",
+      "card_text": "Better in night games, equally worse in day games.",
+      "detail": "A boost in night games and the same-sized penalty in day games. Most games are at night, so this usually comes out ahead.",
+      "short": "better at night, worse in day games"
+    },
+    {
+      "bit": 15,
+      "key": 13,
+      "name": "Outlier I",
+      "role": "pitcher",
+      "family": "Velocity",
+      "card_text": "Primary pitch gains about 1.6 mph and can pass its normal speed cap. No downside.",
+      "detail": "Your primary pitch throws about 1.6 mph harder and can go past its usual top speed. No penalty anywhere.",
+      "short": "+1.6 mph on your main pitch, no downside"
+    },
+    {
+      "bit": 16,
+      "key": 14,
+      "name": "Outlier II",
+      "role": "pitcher",
+      "family": "Velocity",
+      "card_text": "Secondary pitch gains about 1.6 mph and can pass its normal speed cap. No downside.",
+      "detail": "Your secondary pitch throws about 1.6 mph harder and can go past its usual top speed. No penalty anywhere.",
+      "short": "+1.6 mph on your 2nd pitch, no downside"
+    },
+    {
+      "bit": 17,
+      "key": 17,
+      "name": "Break Outlier",
+      "role": "pitcher",
+      "family": "Break",
+      "card_text": "Pitches lose less break as you tire. No downside.",
+      "detail": "Your pitches keep more of their movement late in outings when you're tired. No penalty anywhere.",
+      "short": "keeps more break when tired, no downside"
+    },
+    {
+      "bit": 18,
+      "key": 18,
+      "name": "Table Setter",
+      "role": "hitter",
+      "family": "Speed",
+      "card_text": "Better with the bases empty, equally worse with runners on.",
+      "detail": "A boost with nobody on base and the same-sized penalty with runners on.",
+      "short": "better with the bases empty, worse with men on"
+    }
+  ],
+  "max_owned": 15,
+  "_offer_size_about": "The game's dialog choice screen shows at most 3 options (f_7001783860), so max is 3. Earned quirks are shown first.",
+  "offer_size": {
+    "college": {
+      "initial": 2,
+      "full": 3
+    },
+    "draft": {
+      "first_overall": 3,
+      "round_1": 3,
+      "later": 2
+    },
+    "spring": {
+      "base": 3,
+      "with_earned": 3
+    },
+    "max": 3
+  },
+  "_spring_by_season_about": "Spring offer size from last season (all levels added up). Below the playing-time minimum the size is 'short_season'. Earned quirks are always shown, even if that goes past the size (still max 3).",
+  "spring_by_season": {
+    "hitter": {
+      "stat": "ops",
+      "min_pa": 150,
+      "tiers": [
+        {
+          "min": 0.8,
+          "size": 3
+        },
+        {
+          "min": 0.7,
+          "size": 2
+        },
+        {
+          "min": 0,
+          "size": 1
+        }
+      ]
+    },
+    "pitcher": {
+      "stat": "era",
+      "min_ip": 50,
+      "tiers": [
+        {
+          "max": 3.0,
+          "size": 3
+        },
+        {
+          "max": 4.0,
+          "size": 2
+        },
+        {
+          "max": 999,
+          "size": 1
+        }
+      ]
+    },
+    "short_season": 2
+  },
+  "locks": {
+    "Outlier I": {
+      "velocity_slot": 0,
+      "min": 90
+    },
+    "Outlier II": {
+      "requires": "Outlier I",
+      "velocity_slot": 1,
+      "above": 90
+    },
+    "Break Outlier": {
+      "best_movement_above": 90
+    }
+  },
+  "earned": {
+    "Outlier I": {
+      "velocity_slot": 0,
+      "min": 99
+    },
+    "Outlier II": {
+      "velocity_slot": 1,
+      "min": 99
+    },
+    "Break Outlier": {
+      "best_movement_min": 99,
+      "second_movement_min": 90
+    },
+    "Situational Hitter": {
+      "risp_avg_min": 0.333,
+      "risp_ab_min": 50,
+      "moments": [
+        "spring"
+      ]
+    },
+    "Homebody": {
+      "side": "home",
+      "hitter_avg_min": 0.32,
+      "ab_min": 150,
+      "pitcher_era_max": 2.5,
+      "ip_min": {
+        "starter": 50,
+        "reliever": 25,
+        "closer": 25
+      },
+      "moments": [
+        "spring"
+      ]
+    },
+    "Road Warrior": {
+      "side": "away",
+      "hitter_avg_min": 0.32,
+      "ab_min": 150,
+      "pitcher_era_max": 2.5,
+      "ip_min": {
+        "starter": 50,
+        "reliever": 25,
+        "closer": 25
+      },
+      "moments": [
+        "spring"
+      ]
+    },
+    "Stopper": {
+      "saves_min": 30,
+      "quality_starts_min": 12,
+      "moments": [
+        "spring"
+      ]
+    },
+    "Table Setter": {
+      "steals_min": 30,
+      "moments": [
+        "spring"
+      ]
+    }
+  },
+  "_carry_about": "Earned quirks that did not fit in an offer are remembered and pinned in the next offer (any moment), even if no longer earned. Stored in the player's quirk word (record +0x28, save D_QUIRKS) in bits the game never uses: carry bit = 19 + slot.",
+  "carry_bits": {
+    "Outlier I": 19,
+    "Outlier II": 20,
+    "Break Outlier": 21,
+    "Situational Hitter": 22,
+    "Homebody": 23,
+    "Road Warrior": 24,
+    "Stopper": 25,
+    "Table Setter": 26
+  },
+  "_two_way_about": "Two-way players can use all 19 quirks. At warn_at owned, a one-time warning line that only a few quirk slots are left (flag in spare bit warned_bit). Passing is available to everyone in the confirm step.",
+  "two_way": {
+    "warn_at": 12,
+    "warned_bit": 27
+  },
+  "lock_bypass": {
+    "college_prestige_min": 5,
+    "draft_pick_chance": {
+      "1": 0.5,
+      "2": 0.4,
+      "3": 0.3,
+      "4": 0.2,
+      "5": 0.1
+    }
+  },
+  "_colleges_about": "Order = AMATEURREWARDS.XML college order (COLLEGES.XML lists the same order). hitter/pitcher = the game's perkType focus; Defense has no quirks so it maps to General.",
+  "colleges": [
+    {
+      "abbr": "CSUF",
+      "name": "Cal State Fullerton",
+      "hitter": "Contact",
+      "pitcher": "Control",
+      "prestige": 3
+    },
+    {
+      "abbr": "TCU",
+      "name": "TCU",
+      "hitter": "Power",
+      "pitcher": "Break",
+      "prestige": 3
+    },
+    {
+      "abbr": "CLEM",
+      "name": "Clemson",
+      "hitter": "Contact",
+      "pitcher": "Control",
+      "prestige": 3
+    },
+    {
+      "abbr": "STAN",
+      "name": "Stanford",
+      "hitter": "Contact",
+      "pitcher": "Velocity",
+      "prestige": 4
+    },
+    {
+      "abbr": "UVA",
+      "name": "Virginia",
+      "hitter": "Power",
+      "pitcher": "Break",
+      "prestige": 3
+    },
+    {
+      "abbr": "WAKE",
+      "name": "Wake Forest",
+      "hitter": "Speed",
+      "pitcher": "Velocity",
+      "prestige": 3
+    },
+    {
+      "abbr": "UCLA",
+      "name": "UCLA",
+      "hitter": "Speed",
+      "pitcher": "Control",
+      "prestige": 4
+    },
+    {
+      "abbr": "USC",
+      "name": "South Carolina",
+      "hitter": "Contact",
+      "pitcher": "Break",
+      "prestige": 4
+    },
+    {
+      "abbr": "TN",
+      "name": "Tennessee",
+      "hitter": "Contact",
+      "pitcher": "Velocity",
+      "prestige": 4
+    },
+    {
+      "abbr": "ARK",
+      "name": "Arkansas",
+      "hitter": "Power",
+      "pitcher": "Velocity",
+      "prestige": 4
+    },
+    {
+      "abbr": "UNC",
+      "name": "North Carolina",
+      "hitter": "Contact",
+      "pitcher": "Break",
+      "prestige": 4
+    },
+    {
+      "abbr": "UF",
+      "name": "Florida",
+      "hitter": "Power",
+      "pitcher": "Velocity",
+      "prestige": 4
+    },
+    {
+      "abbr": "MICH",
+      "name": "Michigan",
+      "hitter": "General",
+      "pitcher": "Control",
+      "prestige": 4
+    },
+    {
+      "abbr": "LSU",
+      "name": "LSU",
+      "hitter": "Power",
+      "pitcher": "Break",
+      "prestige": 5
+    },
+    {
+      "abbr": "VU",
+      "name": "Vanderbilt",
+      "hitter": "Contact",
+      "pitcher": "Velocity",
+      "prestige": 5
+    },
+    {
+      "abbr": "UT",
+      "name": "Texas",
+      "hitter": "General",
+      "pitcher": "Break",
+      "prestige": 5
+    },
+    {
+      "abbr": "FSU",
+      "name": "Florida State",
+      "hitter": "Power",
+      "pitcher": "Break",
+      "prestige": 5
+    },
+    {
+      "abbr": "OSU",
+      "name": "Oregon State",
+      "hitter": "Contact",
+      "pitcher": "Control",
+      "prestige": 5
+    },
+    {
+      "abbr": "FRES",
+      "name": "Fresno State",
+      "hitter": "Speed",
+      "pitcher": "Break",
+      "prestige": 3
+    }
+  ],
+  "debug": {
+    "_about": "Test-only overrides for in-game checks (empty = off). e.g. {\"velocity\": [99,92,0,0,0,0]}",
+    "force_inputs": {}
+  },
+  "_texts_about": "card_text = shorter, honest replacement for the game's quirk description (player card; needs the QUIRKS.NSW_EN rebuild). detail = the line shown in the offer's confirm step (our scene text). Sizes are relative, from the batting-modifier code (f_700028daa0); 'much' ~ 3-6x the penalty.",
+  "_confirm_about": "After picking a quirk, a confirm step shows its detail text with 3 options: lock it in / pick something else (back to the offer) / pass this year. So offers keep all 3 slots for quirks and anyone can pass.",
+  "confirm": {
+    "lock": "Lock it in.",
+    "back": "Let me pick something else.",
+    "pass": "I'll pass this year."
+  }
+}

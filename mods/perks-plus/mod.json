@@ -1,0 +1,40 @@
+{
+ "card": "release/card.json",
+ "features": "release/features.md",
+ "name": "Perks+",
+ "order": 50,
+ "art": "ICON_GOAT_SILVER_LG",
+ "description": "Fixes Road to the Show perks: umpire perks now call borderline pitches your way, Better Jump When Stealing works, Fore! and Top Floor fire when tied or losing at level 3, and Brick Wall and Hose Piece can be unlocked.",
+ "patches": "patches.txt",
+ "files": {
+  "cwd": "{mods}/perks-plus/tools",
+  "install": [
+   "python",
+   "-E",
+   "-s",
+   "perks_install.py",
+   "install",
+   "--game",
+   "{game}"
+  ],
+  "uninstall": [
+   "python",
+   "-E",
+   "-s",
+   "perks_install.py",
+   "uninstall",
+   "--game",
+   "{game}"
+  ],
+  "status": [
+   "python",
+   "-E",
+   "-s",
+   "perks_install.py",
+   "status",
+   "--game",
+   "{game}"
+  ],
+  "installed_when": "PERKS\\.XML: modded"
+ }
+}

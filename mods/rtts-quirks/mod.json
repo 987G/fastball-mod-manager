@@ -1,0 +1,48 @@
+{
+ "card": "release/card.json",
+ "features": "release/features.md",
+ "name": "Quirks+",
+ "order": 40,
+ "art": "ICON_COACH_CONFUSED_LG",
+ "description": "Earn quirks in Road to the Show: pick one after the draft, once when you join a college, and every spring (more choices after a good season). Each offer says what the quirks do, and you can always pass.",
+ "files": {
+  "cwd": "{mods}/rtts-quirks/tools",
+  "install": [
+   "python",
+   "-E",
+   "-s",
+   "quirks_install.py",
+   "install",
+   "--game",
+   "{game}"
+  ],
+  "uninstall": [
+   "python",
+   "-E",
+   "-s",
+   "quirks_install.py",
+   "uninstall",
+   "--game",
+   "{game}"
+  ],
+  "status": [
+   "python",
+   "-E",
+   "-s",
+   "quirks_install.py",
+   "status",
+   "--game",
+   "{game}"
+  ],
+  "installed_when": "DIALOGSCENEFE\\.DSD: modded"
+ },
+ "runtime": {
+  "branch": "mod/rtts-quirks",
+  "env_on": {
+   "MLB_QUIRKMOD": "{mods}/rtts-quirks/quirkmod.txt"
+  },
+  "env_off": {
+   "MLB_QUIRKMOD": "off"
+  }
+ }
+}

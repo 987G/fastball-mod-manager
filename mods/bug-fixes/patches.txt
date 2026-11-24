@@ -1,0 +1,23 @@
+# Bug Fixes (recomp/patches.py format). Game 1.0.20.
+# Since Fastball 0.2.0 the walk-up freeze sets (walkup_light, walkup_leaders) and the save fixes are built into the
+# port (tools/data/patches-1.0.20.txt and runtime/mlb); the old copies are in backup-pre-0.2. What is left here:
+
+# Set debut_audio: crowd and announcers silent for the rest of the game after a Road to the Show MLB debut intro.
+#
+# The debut intro's second part is a "big moment" (cue state machine f_7001067ccc, event 0x35): it sends a music
+# request to the presentation music object (request 41 at the debut, seen at +0x74) and plays the sound BIG_MOMENT,
+# keeping its handle at object+0x78. BIG_MOMENT runs Big_Moment_Crowd (sound group 29, a looping crowd stream) and
+# BigMoment_Start; the group-29 ducker (slot 25) holds nearly every other group (announcers, crowd, most effects) at
+# volume 0 while it plays. The only place that stops it is the end of the music update f_70003d2ca4 (runs every
+# frame): once music track 0 is neither playing nor pending, it stops +0x78, but only if the "big moment" byte +0x16
+# is set, and only music request 9 sets that byte (f_70003d34b0). The debut's music plays on track 1 and never sets
+# it, so BIG_MOMENT never stopped (seen in the running game 2026-11-21: byte 0, handle still stored).
+# The site drops the byte test, so the big moment stops as soon as music track 0 is quiet. At the debut the music
+# plays on track 1, so BIG_MOMENT stops within a frame and the debut music and the PA intro are heard (tested
+# 2026-11-21). Tried and dropped: also waiting for track 1 (sites at 3d3280/3d3284, words b9407a60 f9400269 f9421529
+# b4000049 / b944f12a b949a92b b949ad2c 4a0c016b 2a0b014a b9407a60 350000ca). The big moment then ran for the length
+# of the music, but its duck covers the music group as well and its own crowd bed (Big_Moment_Crowd) was not heard
+# in the port, so the whole stretch was silent.
+#   cbz w8, 0x70003d329c   (w8 = byte +0x16)   ->   nop
+set  debut_audio  MLB_DEBUT_AUDIO  1
+site debut_audio  main  3d3280  340000e8  d503201f

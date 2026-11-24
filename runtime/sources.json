@@ -1,0 +1,9 @@
+{
+ "fastball": "74a6525bd0036335f01c1906fd11146d70a1cf12",
+ "branches": {
+  "mod/pitch-types": "4a172f6bbbf75ac44753dcf79e53c7e32b8d6ae8",
+  "mod/rtts-quirks": "2976e609d6b55df1c9f595b6672f5fb042fef29a",
+  "mod/bug-fixes": "daa8a997cba3d9e5cbb938e78109a3c299793dd8"
+ },
+ "manager": "dc25569876f73f0b0f617d4f90e1c1976f1d05b0"
+}

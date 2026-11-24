@@ -1,0 +1,18 @@
+{
+ "tagline": "Glitch fixes for RTTS perks",
+ "highlights": [
+  [
+   "Umpire perks",
+   "borderline calls go your way"
+  ],
+  [
+   "Better Jump",
+   "works: +0.15 at a full stack"
+  ],
+  [
+   "Locked perks",
+   "Brick Wall, Hose Piece unlock"
+  ]
+ ],
+ "note": "Also fixes Fore! and Top Floor at level 3."
+}

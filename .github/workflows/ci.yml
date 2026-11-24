@@ -1,0 +1,25 @@
+# The manager's tests and the content check, on every push and pull request. No release is made here: the runtime
+# needs headers made from a local build of the game, so releases are built and packaged on the maintainer's PC.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      # first, so that it checks the repository as pushed (the tests write __pycache__ folders)
+      - name: Content check (no game files, personal information or AI-tool mentions)
+        run: python -I tools/check_release.py .
+      - name: Manager tests
+        working-directory: manager
+        run: python -m unittest discover -s tests -t .

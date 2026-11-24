@@ -1,0 +1,23 @@
+{
+ "art": "ICON_FLYBALL_LG",
+ "card": "release/card.json",
+ "features": "release/features.md",
+ "name": "Bug Fixes",
+ "order": 70,
+ "description": "Fixes bugs in the game: the crowd and announcers keep playing after a Road to the Show debut, changes you keep in the Road to the Show player editor are saved right away, a Road to the Show save is written as soon as you name it, and a new Road to the Show player is no longer saved half-made as \"Joe Random\". (No freeze before each pitch, finished tutorials, saved hub upgrades and kept custom cameras are built into Fastball 0.2.0 and later.)",
+ "patches": "patches.txt",
+ "runtime": {
+  "branch": "mod/bug-fixes",
+  "env_on": {
+   "MLB_PERKS_AUTOSAVE": "0",
+   "MLB_SAVE_EDITS": "1",
+   "MLB_SAVE_CONFIRM": "1",
+   "MLB_CREATION_NOSAVE": "1"
+  },
+  "env_off": {
+   "MLB_SAVE_EDITS": "0",
+   "MLB_SAVE_CONFIRM": "0",
+   "MLB_CREATION_NOSAVE": "0"
+  }
+ }
+}

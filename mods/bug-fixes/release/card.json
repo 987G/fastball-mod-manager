@@ -1,0 +1,18 @@
+{
+ "tagline": "Fixes for bugs in the game",
+ "highlights": [
+  [
+   "Debut sound",
+   "crowd and announcers stay on"
+  ],
+  [
+   "Player edits",
+   "saved as soon as you keep them"
+  ],
+  [
+   "One-step saves",
+   "name it and it is saved"
+  ]
+ ],
+ "note": "Other fixes are built into Fastball 0.2.0 and later."
+}

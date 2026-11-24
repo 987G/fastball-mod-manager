@@ -1,0 +1,13 @@
+**What it fixes**
+- **Road to the Show debut sound:** the crowd and announcers no longer go quiet for the rest of your first MLB game
+  - You hear the debut music and the stadium PA introducing you
+  - You no longer have to skip the intro to keep the game's sound
+- **Road to the Show player editor:** a change you keep (+ Finish, then OK) is saved right away
+  - Leaving Road to the Show or closing the game no longer loses it
+  - Nothing is saved when you leave the editor without changes or choose to lose them
+- **Road to the Show manual save:** once you name the save, it is written
+  - No second confirm on the save list, and no second save prompt by accident right after
+  - Cancelling the name still cancels the save; saves always go to a new file
+- **New Road to the Show player:** the game no longer saves your player while you are still making it
+  - Before, a half-made player named "Joe Random" could be saved as your career
+  - If the game closes before you finish, you make the player again instead of getting that one

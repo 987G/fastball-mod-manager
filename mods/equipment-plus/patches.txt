@@ -1,0 +1,18 @@
+# Equipment+: fixes to how the game draws equipment (recomp/patches.py format). Game 1.0.20.
+
+# Pitcher sleeve: the pitcher on the mound wears the compression sleeve he has on.
+# Game 1.0.20, f_700174f108 (compression-sleeve loader). The game picks the sleeve style as
+#   role = (scene record +0x21 == 0) ? 1 : scene record +0x23      (1 = pitcher on the mound)
+#   style = (role == 1) ? 0 : appearance +0x4f (m_nCompSleeves)     (0 = plain "compressionsleeve")
+# at main+0x174f1d0 `csel w22, wzr, w9, eq`. The patch makes it `mov w22, w9`: style = the worn sleeve for everyone.
+# Records with +0x21 == 0 (menu previews such as Equipment Style, the bullpen, hub crowds) count as role 1 too, so they
+# also show the worn sleeve. Role 7 skips the sleeve before this line and is unchanged.
+set  pitcher_sleeve  MLB_PITCHER_SLEEVE  1
+site pitcher_sleeve  main  174f1d0  1a8903f6  2a0903f6   # csel w22, wzr, w9, eq  ->  mov w22, w9
+
+# Pitcher wrist guards: the pitcher on the mound wears his wrist guards (Equipment Style wrist guards, type 14).
+# f_7001750348 (wrist guard loader) loads the model only when the scene role (record +0x23) is in the bit mask 0x45
+# (roles 0, 2 and 6), held in w23 for both checks. The patch makes the mask 0x47, adding role 1 (the pitcher on the
+# mound). Batters (3), runners (5) and role 4 keep the game's rule.
+set  pitcher_wrist_guard  MLB_PITCHER_WRISTGUARD  1
+site pitcher_wrist_guard  main  1750384  528008b7  528008f7   # mov w23, #0x45  ->  mov w23, #0x47

@@ -1,0 +1,77 @@
+{
+ "card": "release/card.json",
+ "features": "release/features.md",
+ "name": "Pitching++",
+ "order": 20,
+ "art": "ICON_COACH_PITCHING_LG",
+ "description": "Every pitcher pitches like his real 2026 self: his own pitch shapes and break as seen from his hand, his real pitches and how often he throws each by batter side and count, and MLB pitch locations. He throws from his own delivery, edited so he lets go of the ball where he really does, stands where he really does on the rubber, and has his own slide step. Every pitcher's edited delivery is also listed in the player editor, so you can give it to any player. Movement ratings follow real MLB movement, so ratings changes in franchise modes still count. The Fastball and Offspeed Pitch Speed sliders reach real MLB pitch speed at +5 (0 and below stay the game's own), and a faster pitch adds exit velocity at the real rate.",
+ "patches": "patches.txt",
+ "files": {
+  "cwd": "{mods}/pitch-types/tools",
+  "install": [
+   "python",
+   "-E",
+   "-s",
+   "pitching_files.py",
+   "install",
+   "--game",
+   "{game}"
+  ],
+  "uninstall": [
+   "python",
+   "-E",
+   "-s",
+   "pitching_files.py",
+   "uninstall",
+   "--game",
+   "{game}"
+  ],
+  "status": [
+   "python",
+   "-E",
+   "-s",
+   "pitching_files.py",
+   "status",
+   "--game",
+   "{game}"
+  ],
+  "installed_when": "deliveries: installed[\\s\\S]*delivery menu: installed[\\s\\S]*airbender: installed"
+ },
+ "runtime": {
+  "branch": "mod/pitch-types",
+  "env_on": {
+   "MLB_PITCHMOD": "off",
+   "MLB_PITCHING": "1",
+   "MLB_PITCH_MIX": "1",
+   "MLB_PITCH_JITTER": "1",
+   "MLB_PITCHER_SHAPES": "1",
+   "MLB_PITCH_LOCATION": "1",
+   "MLB_RELEASE_EXTENSION": "1",
+   "MLB_PITCH_USAGE": "1",
+   "MLB_PITCH_CLASSES": "1",
+   "MLB_RUBBER_SPOT": "1",
+   "MLB_DELIVERY_STYLES": "1",
+   "MLB_SLIDE_STEPS": "1",
+   "MLB_AIRBENDER": "1",
+   "MLB_PITCHSPEED": "1.07",
+   "MLB_PITCH_EV": "1"
+  },
+  "env_off": {
+   "MLB_PITCHMOD": "off",
+   "MLB_PITCHING": "0",
+   "MLB_PITCH_MIX": "0",
+   "MLB_PITCH_JITTER": "0",
+   "MLB_PITCHER_SHAPES": "0",
+   "MLB_PITCH_LOCATION": "0",
+   "MLB_RELEASE_EXTENSION": "0",
+   "MLB_PITCH_USAGE": "0",
+   "MLB_PITCH_CLASSES": "0",
+   "MLB_RUBBER_SPOT": "0",
+   "MLB_DELIVERY_STYLES": "0",
+   "MLB_SLIDE_STEPS": "0",
+   "MLB_AIRBENDER": "0",
+   "MLB_PITCHSPEED": "off",
+   "MLB_PITCH_EV": "0"
+  }
+ }
+}
