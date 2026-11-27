@@ -25,6 +25,9 @@ LOGS = {"server": "packages-server.log", "build": "build.log", "manager": "manag
 ART_FILE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
 
 
+PING = {"app": "show-mod-manager"}  # GET /api/ping: a second start knows the port is ours
+
+
 def art_url(mod) -> str | None:
     """Where the page gets a mod's picture: its own image file, or a game art name from CROSS/LIVE."""
     if mod.art_file:
@@ -699,6 +702,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self._check_caller(method)
             body = self._body() if method == "POST" else None
+            if method == "GET" and url.path == "/api/ping":  # cheap "is it us?" (python -m app)
+                return self._json(200, PING)
             if method == "GET" and url.path == "/api/state":
                 refresh = parse_qs(url.query).get("refresh", ["0"])[0] == "1"
                 return self._json(200, app.state(refresh))

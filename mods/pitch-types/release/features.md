@@ -10,6 +10,7 @@
 - **Their own slide step:** every 2026 pitcher gets one, in place of the game's four shared ones
 - **Kept, not swapped:** each pitcher keeps the delivery they already have, with their own release edited in
 - **Player editor:** every pitcher's edited delivery is listed there, so you can give it to any player
+- **Hop-Step:** a new delivery in the player editor list, "Hop-Step (Pitching++)": a Carter Capps style hop off the rubber before the front foot lands, releasing about 8 ft out
 
 **Ratings and perceived speed**
 - **Ratings still count:** movement ratings follow real MLB movement, so ratings changes in franchise modes still matter

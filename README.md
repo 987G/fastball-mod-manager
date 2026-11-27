@@ -19,6 +19,14 @@ download them and press Play; the manager puts each mod in place and takes it ou
 Windows may say it does not know the app the first time: choose **More info**, then **Run anyway**. Nothing is
 installed anywhere else; the manager keeps everything in its own folder.
 
+### If nothing opens
+
+The manager opens in Microsoft Edge, or in your default browser when Edge is not installed, at
+http://127.0.0.1:8645/; you can also type that address into a browser while the manager runs. Closing the browser tab
+leaves the manager running: close it with **SETTINGS**, **QUIT MANAGER**. If another program uses port 8645, the
+manager says so: set `"port"` to another number, such as 8646, in `state\settings.json` in the manager folder (a new
+file holding `{"port": 8646}` will do) and start it again.
+
 ## First run
 
 1. Open **SETTINGS**.

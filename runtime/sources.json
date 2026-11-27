@@ -1,9 +1,9 @@
 {
  "fastball": "74d3f93e85533fa7952847088bbfd5910820fde7",
  "branches": {
-  "mod/pitch-types": "07c4ffc17c91513a35b87967d79edd38b06e696d",
+  "mod/pitch-types": "b0e2f17e4a908c9a492ae2ac78355b0a720382d0",
   "mod/rtts-quirks": "ccdf8e3d3f97e658f23b55f584d61e745c374446",
   "mod/bug-fixes": "07da9955120268f2e2bd02d01edef3a3d3e156e3"
  },
- "manager": "3ac6c95525cb56e1ef4b02e12e2e77a8d1efb157"
+ "manager": "425613acfc0c9b8e7b48b509b56de1bd66edb523"
 }
